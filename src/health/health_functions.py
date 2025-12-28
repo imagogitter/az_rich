@@ -3,10 +3,13 @@
 import json
 import logging
 import os
+import time
 from datetime import datetime
 from typing import Dict, Any
 
+import aiohttp
 import azure.functions as func
+from azure.cosmos import CosmosClient
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
@@ -23,8 +26,6 @@ async def check_keyvault() -> Dict[str, Any]:
         kv_name = os.environ.get("KEY_VAULT_NAME")
         if not kv_name:
             return {"status": "skip", "message": "KEY_VAULT_NAME not set"}
-
-        import time
 
         start = time.time()
         credential = DefaultAzureCredential()
@@ -45,12 +46,8 @@ async def check_cosmos() -> Dict[str, Any]:
         if not cosmos_account:
             return {"status": "skip", "message": "COSMOS_ACCOUNT not set"}
 
-        import time
-
         start = time.time()
         credential = DefaultAzureCredential()
-        # Import CosmosClient for actual connectivity check
-        from azure.cosmos import CosmosClient
 
         # Test actual connection by checking if account is accessible
         client = CosmosClient(url=f"https://{cosmos_account}.documents.azure.com:443/", credential=credential)
@@ -66,9 +63,6 @@ async def check_cosmos() -> Dict[str, Any]:
 async def check_inference_backend() -> Dict[str, Any]:
     """Check inference backend availability."""
     try:
-        import time
-        import aiohttp
-
         vmss_name = os.environ.get("VMSS_NAME")
         if not vmss_name:
             return {"status": "skip", "message": "VMSS_NAME not set"}
