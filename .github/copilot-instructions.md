@@ -138,14 +138,14 @@ az deployment sub create --location eastus --template-file bicep/main.bicep
 
 ### Secrets Management
 ```python
-from secrets_manager import SecretsManager
+# SecretsManager is a singleton defined in api_orchestrator/main.py
 secrets_manager = SecretsManager()
 api_key = secrets_manager.get_secret("api-key")
 ```
 
 ### Response Caching
 ```python
-from cache_manager import CacheManager
+# CacheManager is a singleton defined in api_orchestrator/main.py
 cache_manager = CacheManager()
 cached = await cache_manager.get_cached_response(request)
 ```
