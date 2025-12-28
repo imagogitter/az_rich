@@ -60,6 +60,15 @@ HTML
 
 main() {
   load_env
+
+  # Ensure marketing resource group exists
+  if ! az group show --name "$RESOURCE_GROUP" >/dev/null 2>&1; then
+    az group create --name "$RESOURCE_GROUP" --location "$LOCATION" --tags "$TAGS"
+    log "Created resource group $RESOURCE_GROUP"
+  else
+    log "Resource group $RESOURCE_GROUP already exists"
+  fi
+
   deploy_prospector
   deploy_calculator
   log "Marketing components created locally"
