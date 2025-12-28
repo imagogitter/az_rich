@@ -1,0 +1,10 @@
+{
+"IsEncrypted": false,
+"Values": {
+"AzureWebJobsStorage": "UseDevelopmentStorage=true",
+"FUNCTIONS_WORKER_RUNTIME": "python",
+"KEY_VAULT_NAME": "your-keyvault-name",
+"COSMOS_ACCOUNT": "your-cosmos-account",
+"PROJECT_NAME": "ai-inference-platform"
+}
+}

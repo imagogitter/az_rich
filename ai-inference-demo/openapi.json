@@ -1,0 +1,47 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AI Inference API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/chat/completions": {
+      "post": {
+        "summary": "Create chat completion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["model", "messages"],
+                "properties": {
+                  "model": {"type": "string"},
+                  "messages": {"type": "array"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Success"}
+        }
+      }
+    },
+    "/health/live": {
+      "get": {
+        "summary": "Liveness probe",
+        "responses": {
+          "200": {"description": "Service is alive"}
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "summary": "Readiness probe",
+        "responses": {
+          "200": {"description": "Service is ready"}
+        }
+      }
+    }
+  }
+}

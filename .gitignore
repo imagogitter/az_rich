@@ -1,0 +1,36 @@
+# Environment
+.env
+.env.*
+*.env
+
+# Terraform
+terraform/.terraform/
+terraform/.tfstate
+terraform/.tfstate.*
+terraform/*.tfplan
+terraform/.terraform.lock.hcl
+
+# Python
+pycache/
+*.py[cod]
+.venv/
+venv/
+
+# Azure Functions
+local.settings.json
+.python_packages/
+.func/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.pem
+*.key
+secrets/

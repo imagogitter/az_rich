@@ -1,0 +1,18 @@
+{
+"scriptFile": "health_functions.py",
+"bindings": [
+{
+"authLevel": "anonymous",
+"type": "httpTrigger",
+"direction": "in",
+"name": "req",
+"methods": ["get"],
+"route": "health/{check_type}"
+},
+{
+"type": "http",
+"direction": "out",
+"name": "$return"
+}
+]
+}
