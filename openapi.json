@@ -141,295 +141,295 @@
           }
         }
       }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
     },
-    "components": {
-      "securitySchemes": {
-        "bearerAuth": {
-          "type": "http",
-          "scheme": "bearer"
-        }
-      },
-      "schemas": {
-        "ChatCompletionRequest": {
-          "type": "object",
-          "required": [
-            "model",
-            "messages"
-          ],
-          "properties": {
-            "model": {
-              "type": "string",
-              "enum": [
-                "mixtral-8x7b",
-                "llama-3-70b",
-                "phi-3-mini",
-                "auto"
-              ],
-              "description": "Model to use for completion"
-            },
-            "messages": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Message"
-              }
-            },
-            "max_tokens": {
-              "type": "integer",
-              "default": 256,
-              "maximum": 4096
-            },
-            "temperature": {
-              "type": "number",
-              "default": 1.0,
-              "minimum": 0,
-              "maximum": 2
-            },
-            "top_p": {
-              "type": "number",
-              "default": 1.0
-            },
-            "stream": {
-              "type": "boolean",
-              "default": false
-            },
-            "stop": {
-              "oneOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ]
-            }
-          }
-        },
-        "Message": {
-          "type": "object",
-          "required": [
-            "role",
-            "content"
-          ],
-          "properties": {
-            "role": {
-              "type": "string",
-              "enum": [
-                "system",
-                "user",
-                "assistant"
-              ]
-            },
-            "content": {
-              "type": "string"
-            }
-          }
-        },
-        "ChatCompletionResponse": {
-          "type": "object",
-          "properties": {
-            "id": {
-              "type": "string"
-            },
-            "object": {
-              "type": "string",
-              "default": "chat.completion"
-            },
-            "created": {
-              "type": "integer"
-            },
-            "model": {
-              "type": "string"
-            },
-            "choices": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Choice"
-              }
-            },
-            "usage": {
-              "$ref": "#/components/schemas/Usage"
-            }
-          }
-        },
-        "Choice": {
-          "type": "object",
-          "properties": {
-            "index": {
-              "type": "integer"
-            },
-            "message": {
+    "schemas": {
+      "ChatCompletionRequest": {
+        "type": "object",
+        "required": [
+          "model",
+          "messages"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "mixtral-8x7b",
+              "llama-3-70b",
+              "phi-3-mini",
+              "auto"
+            ],
+            "description": "Model to use for completion"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
               "$ref": "#/components/schemas/Message"
-            },
-            "finish_reason": {
-              "type": "string"
-            }
-          }
-        },
-        "Usage": {
-          "type": "object",
-          "properties": {
-            "prompt_tokens": {
-              "type": "integer"
-            },
-            "completion_tokens": {
-              "type": "integer"
-            },
-            "total_tokens": {
-              "type": "integer"
-            }
-          }
-        },
-        "ModelList": {
-          "type": "object",
-          "properties": {
-            "object": {
-              "type": "string",
-              "default": "list"
-            },
-            "data": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Model"
-              }
-            }
-          }
-        },
-        "Model": {
-          "type": "object",
-          "properties": {
-            "id": {
-              "type": "string"
-            },
-            "object": {
-              "type": "string",
-              "default": "model"
-            },
-            "created": {
-              "type": "integer"
-            },
-            "owned_by": {
-              "type": "string"
-            }
-          }
-        },
-        "HealthResponse": {
-          "type": "object",
-          "properties": {
-            "status": {
-              "type": "string",
-              "enum": [
-                "healthy",
-                "unhealthy",
-                "degraded"
-              ]
-            },
-            "timestamp": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "version": {
-              "type": "string"
-            },
-            "checks": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "type": "string"
-                  },
-                  "latency_ms": {
-                    "type": "number"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "Error": {
-          "type": "object",
-          "properties": {
-            "error": {
-              "type": "object",
-              "properties": {
-                "code": {
-                  "type": "string"
-                },
-                "message": {
-                  "type": "string"
-                },
-                "type": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      },
-      "responses": {
-        "BadRequest": {
-          "description": "Bad request",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Error"
-              }
-            }
-          }
-        },
-        "Unauthorized": {
-          "description": "Unauthorized",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Error"
-              }
-            }
-          }
-        },
-        "RateLimited": {
-          "description": "Rate limit exceeded",
-          "headers": {
-            "Retry-After": {
-              "schema": {
-                "type": "integer"
-              },
-              "description": "Seconds to wait before retrying"
-            },
-            "X-RateLimit-Limit": {
-              "schema": {
-                "type": "integer"
-              }
-            },
-            "X-RateLimit-Remaining": {
-              "schema": {
-                "type": "integer"
-              }
-            },
-            "X-RateLimit-Reset": {
-              "schema": {
-                "type": "integer"
-              }
             }
           },
+          "max_tokens": {
+            "type": "integer",
+            "default": 256,
+            "maximum": 4096
+          },
+          "temperature": {
+            "type": "number",
+            "default": 1.0,
+            "minimum": 0,
+            "maximum": 2
+          },
+          "top_p": {
+            "type": "number",
+            "default": 1.0
+          },
+          "stream": {
+            "type": "boolean",
+            "default": false
+          },
+          "stop": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "system",
+              "user",
+              "assistant"
+            ]
+          },
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Error"
+            "type": "string"
+          }
+        }
+      },
+      "ChatCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "default": "chat.completion"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Choice"
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          }
+        }
+      },
+      "Choice": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "finish_reason": {
+            "type": "string"
+          }
+        }
+      },
+      "Usage": {
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer"
+          },
+          "completion_tokens": {
+            "type": "integer"
+          },
+          "total_tokens": {
+            "type": "integer"
+          }
+        }
+      },
+      "ModelList": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "default": "list"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Model"
+            }
+          }
+        }
+      },
+      "Model": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "default": "model"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "owned_by": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "unhealthy",
+              "degraded"
+            ]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string"
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "latency_ms": {
+                  "type": "number"
+                }
               }
             }
           }
-        },
-        "InternalError": {
-          "description": "Internal server error",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Error"
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
               }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Rate limit exceeded",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Seconds to wait before retrying"
+          },
+          "X-RateLimit-Limit": {
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Remaining": {
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Reset": {
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
             }
           }
         }
