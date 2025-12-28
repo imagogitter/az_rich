@@ -8,9 +8,9 @@ Linter results (2025-12-28)
 
 Notes & Recommendations:
 - I created `deploy-clean.sh` and `deploy-marketing-clean.sh` as safe, cleaned versions. I also created `deploy-full-clean.sh` and `deploy-marketing-full-clean.sh` (sanitized full scripts). They are executable and shellcheck-clean.
-- I backed up the original raw copies and replaced them with the cleaned versions:
-  - `deploy-full-original.sh` (backup of raw), replaced by cleaned `deploy-full.sh` (was `deploy-full-clean.sh`).
-  - `deploy-marketing-full-original.sh` (backup of raw), replaced by cleaned `deploy-marketing-full.sh` (was `deploy-marketing-full-clean.sh`).
+- I backed up the original raw copies and replaced them with the cleaned versions (backups have now been deleted):
+  - `deploy-full-original.sh` (backup of raw) — removed after replacement.
+  - `deploy-marketing-full-original.sh` (backup of raw) — removed after replacement.
 - I ran `black` to auto-format Python files and `flake8` inside a venv; Python issues were fixed and flake8 is now clean.
 - Post-replacement checks: both `deploy-full.sh` and `deploy-marketing-full.sh` pass `bash -n` syntax checks; `shellcheck` reports only benign warnings (unused variables and env sourcing info) in the marketing script.
 
