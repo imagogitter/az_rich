@@ -9,13 +9,13 @@ from typing import Dict, Any
 import azure.functions as func
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
-from azure.cosmos import CosmosClient
 
-logger = logging.getLogger(name)
+logger = logging.getLogger(__name__)
 
 # Cache for health check results
 _health_cache: Dict[str, Any] = {}
-_cache_ttl = 10 # seconds
+_cache_ttl = 10  # seconds
+
 
 async def check_keyvault() -> Dict[str, Any]:
     """Check Key Vault connectivity."""
@@ -25,16 +25,14 @@ async def check_keyvault() -> Dict[str, Any]:
             return {"status": "skip", "message": "KEY_VAULT_NAME not set"}
 
         credential = DefaultAzureCredential()
-        client = SecretClient(
-            vault_url=f"https://{kv_name}.vault.azure.net",
-            credential=credential
-        )
+        client = SecretClient(vault_url=f"https://{kv_name}.vault.azure.net", credential=credential)
         # Try to list secrets (lightweight operation)
         list(client.list_properties_of_secrets(max_page_size=1))
         return {"status": "healthy", "latency_ms": 0}
     except Exception as e:
         logger.error(f"Key Vault health check failed: {e}")
         return {"status": "unhealthy", "error": str(e)}
+
 
 async def check_cosmos() -> Dict[str, Any]:
     """Check Cosmos DB connectivity."""
@@ -43,13 +41,14 @@ async def check_cosmos() -> Dict[str, Any]:
         if not cosmos_account:
             return {"status": "skip", "message": "COSMOS_ACCOUNT not set"}
 
-        # Use managed identity
-        credential = DefaultAzureCredential()
+        # Use managed identity (not used in this lightweight check)
+        _ = DefaultAzureCredential()
         # Note: In production, you'd use the actual connection
         return {"status": "healthy", "latency_ms": 0}
     except Exception as e:
         logger.error(f"Cosmos DB health check failed: {e}")
         return {"status": "unhealthy", "error": str(e)}
+
 
 async def check_inference_backend() -> Dict[str, Any]:
     """Check inference backend availability."""
@@ -74,7 +73,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "version": os.environ.get("WEBSITE_INSTANCE_ID", "local"),
-        "checks": {}
+        "checks": {},
     }
 
     status_code = 200
@@ -82,57 +81,47 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if check_type == "live":
         # Liveness: Just check if the function is responding
         response["checks"]["self"] = {"status": "healthy"}
-        
+
     elif check_type == "ready":
         # Readiness: Check all dependencies
         import asyncio
-        
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
+
         try:
             # Run health checks
             kv_result = loop.run_until_complete(check_keyvault())
             cosmos_result = loop.run_until_complete(check_cosmos())
             backend_result = loop.run_until_complete(check_inference_backend())
-            
-            response["checks"] = {
-                "keyvault": kv_result,
-                "cosmos": cosmos_result,
-                "inference_backend": backend_result
-            }
-            
+
+            response["checks"] = {"keyvault": kv_result, "cosmos": cosmos_result, "inference_backend": backend_result}
+
             # Determine overall status
-            unhealthy = [k for k, v in response["checks"].items() 
-                        if v.get("status") == "unhealthy"]
-            
+            unhealthy = [k for k, v in response["checks"].items() if v.get("status") == "unhealthy"]
+
             if unhealthy:
                 response["status"] = "unhealthy"
                 status_code = 503
             elif any(v.get("status") == "degraded" for v in response["checks"].values()):
                 response["status"] = "degraded"
                 status_code = 200
-                
+
         finally:
             loop.close()
-            
+
     elif check_type == "startup":
         # Startup: Check if initial setup is complete
         response["checks"]["initialization"] = {"status": "healthy"}
-        
+
     else:
         return func.HttpResponse(
-            json.dumps({"error": f"Unknown check type: {check_type}"}),
-            status_code=400,
-            mimetype="application/json"
+            json.dumps({"error": f"Unknown check type: {check_type}"}), status_code=400, mimetype="application/json"
         )
 
     return func.HttpResponse(
         json.dumps(response, indent=2),
         status_code=status_code,
         mimetype="application/json",
-        headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "X-Health-Check": check_type
-        }
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "X-Health-Check": check_type},
     )

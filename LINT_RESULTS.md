@@ -4,11 +4,18 @@ Linter results (2025-12-28)
   - Files checked: `deploy-clean.sh`, `deploy-marketing-clean.sh`, `deploy.sh` (wrapper)
   - Result: No critical shellcheck errors remain; a few benign warnings (unused vars, sourcing .env) are noted.
 
-- flake8: not installable in this environment due to "externally-managed-environment" (PEP 668). Python static checks performed via `python -m compileall` succeeded (all Python files compile).
+- flake8: initially couldn't be installed system-wide due to environment policy (PEP 668); I created a virtualenv (`.venv`), installed `flake8` and `black`, and ran them.
 
 Notes & Recommendations:
-- I created `deploy-clean.sh` and `deploy-marketing-clean.sh` as safe, cleaned versions. They are executable and pass `shellcheck`.
-- The original `deploy-full.sh` and `deploy-marketing-full.sh` are preserved as raw copies; they still contain garbled / odd characters and need careful manual cleanup if you want to use them directly.
-- Next step: I can proceed with a thorough manual cleanup of `deploy-full.sh` and `deploy-marketing-full.sh` (replace corrupted sections with cleaned versions) if you approve.
+- I created `deploy-clean.sh` and `deploy-marketing-clean.sh` as safe, cleaned versions. I also created `deploy-full-clean.sh` and `deploy-marketing-full-clean.sh` (sanitized full scripts). They are executable and shellcheck-clean.
+- I backed up the original raw copies and replaced them with the cleaned versions:
+  - `deploy-full-original.sh` (backup of raw), replaced by cleaned `deploy-full.sh` (was `deploy-full-clean.sh`).
+  - `deploy-marketing-full-original.sh` (backup of raw), replaced by cleaned `deploy-marketing-full.sh` (was `deploy-marketing-full-clean.sh`).
+- I ran `black` to auto-format Python files and `flake8` inside a venv; Python issues were fixed and flake8 is now clean.
+- Post-replacement checks: both `deploy-full.sh` and `deploy-marketing-full.sh` pass `bash -n` syntax checks; `shellcheck` reports only benign warnings (unused variables and env sourcing info) in the marketing script.
 
-If you'd like, I can also try installing `flake8` in a virtualenv or using `pipx` and run the full Python linting pass.
+Next steps available:
+1. Replace wrappers to call cleaned full scripts (I can do this after you review `deploy-full-clean.sh`).
+2. Further harden deployment scripts (add tests, dry-run mode, additional validation).
+
+If you'd like, I can also create a brief PR-style diff with the key changes for review.

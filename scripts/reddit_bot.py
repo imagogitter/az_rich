@@ -1,9 +1,11 @@
-import praw, os, time
+import praw
+import os
+import time
 
 reddit = praw.Reddit(
-    client_id=os.environ.get('REDDIT_CLIENT_ID'),
-    client_secret=os.environ.get('REDDIT_SECRET'),
-    user_agent="AI Cost Bot 1.0"
+    client_id=os.environ.get("REDDIT_CLIENT_ID"),
+    client_secret=os.environ.get("REDDIT_SECRET"),
+    user_agent="AI Cost Bot 1.0",
 )
 
 for submission in reddit.subreddit("MachineLearning+OpenAI+LocalLLaMA").hot(limit=50):
