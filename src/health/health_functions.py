@@ -24,11 +24,15 @@ async def check_keyvault() -> Dict[str, Any]:
         if not kv_name:
             return {"status": "skip", "message": "KEY_VAULT_NAME not set"}
 
+        import time
+
+        start = time.time()
         credential = DefaultAzureCredential()
         client = SecretClient(vault_url=f"https://{kv_name}.vault.azure.net", credential=credential)
         # Try to list secrets (lightweight operation)
         list(client.list_properties_of_secrets(max_page_size=1))
-        return {"status": "healthy", "latency_ms": 0}
+        latency_ms = int((time.time() - start) * 1000)
+        return {"status": "healthy", "latency_ms": latency_ms}
     except Exception as e:
         logger.error(f"Key Vault health check failed: {e}")
         return {"status": "unhealthy", "error": str(e)}
@@ -41,10 +45,19 @@ async def check_cosmos() -> Dict[str, Any]:
         if not cosmos_account:
             return {"status": "skip", "message": "COSMOS_ACCOUNT not set"}
 
-        # Use managed identity (not used in this lightweight check)
-        _ = DefaultAzureCredential()
-        # Note: In production, you'd use the actual connection
-        return {"status": "healthy", "latency_ms": 0}
+        import time
+
+        start = time.time()
+        credential = DefaultAzureCredential()
+        # Import CosmosClient for actual connectivity check
+        from azure.cosmos import CosmosClient
+
+        # Test actual connection by checking if account is accessible
+        client = CosmosClient(url=f"https://{cosmos_account}.documents.azure.com:443/", credential=credential)
+        # List databases (lightweight operation to verify connectivity)
+        list(client.list_databases())
+        latency_ms = int((time.time() - start) * 1000)
+        return {"status": "healthy", "latency_ms": latency_ms}
     except Exception as e:
         logger.error(f"Cosmos DB health check failed: {e}")
         return {"status": "unhealthy", "error": str(e)}
@@ -53,11 +66,30 @@ async def check_cosmos() -> Dict[str, Any]:
 async def check_inference_backend() -> Dict[str, Any]:
     """Check inference backend availability."""
     try:
-        # In production, ping the VMSS load balancer
-        return {"status": "healthy", "instances": 0, "latency_ms": 0}
+        import time
+        import aiohttp
+
+        vmss_name = os.environ.get("VMSS_NAME")
+        if not vmss_name:
+            return {"status": "skip", "message": "VMSS_NAME not set"}
+
+        # Build the backend health endpoint URL
+        backend_url = f"http://{vmss_name}.internal:8080/health"
+
+        start = time.time()
+        async with aiohttp.ClientSession() as session:
+            async with session.get(backend_url, timeout=aiohttp.ClientTimeout(total=5)) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    latency_ms = int((time.time() - start) * 1000)
+                    return {"status": "healthy", "instances": data.get("instances", 0), "latency_ms": latency_ms}
+                else:
+                    return {"status": "unhealthy", "error": f"Backend returned {response.status}"}
     except Exception as e:
         logger.error(f"Inference backend health check failed: {e}")
-        return {"status": "unhealthy", "error": str(e)}
+        # If backend is not available, mark as degraded (not unhealthy)
+        # since the service can still function without active GPU instances
+        return {"status": "degraded", "error": str(e), "instances": 0}
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
