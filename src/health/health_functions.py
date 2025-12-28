@@ -41,10 +41,21 @@ async def check_cosmos() -> Dict[str, Any]:
         if not cosmos_account:
             return {"status": "skip", "message": "COSMOS_ACCOUNT not set"}
 
-        # Use managed identity (not used in this lightweight check)
-        _ = DefaultAzureCredential()
-        # Note: In production, you'd use the actual connection
-        return {"status": "healthy", "latency_ms": 0}
+        # In production, perform actual connectivity check
+        from azure.cosmos import CosmosClient
+        import time
+
+        start_time = time.time()
+        credential = DefaultAzureCredential()
+        client = CosmosClient(
+            url=f"https://{cosmos_account}.documents.azure.com:443/", credential=credential
+        )
+
+        # Lightweight check: list databases (requires appropriate permissions)
+        list(client.list_databases(max_item_count=1))
+        latency_ms = int((time.time() - start_time) * 1000)
+
+        return {"status": "healthy", "latency_ms": latency_ms}
     except Exception as e:
         logger.error(f"Cosmos DB health check failed: {e}")
         return {"status": "unhealthy", "error": str(e)}
@@ -53,8 +64,24 @@ async def check_cosmos() -> Dict[str, Any]:
 async def check_inference_backend() -> Dict[str, Any]:
     """Check inference backend availability."""
     try:
-        # In production, ping the VMSS load balancer
-        return {"status": "healthy", "instances": 0, "latency_ms": 0}
+        import aiohttp
+        import time
+
+        vmss_name = os.environ.get("VMSS_NAME", "localhost")
+        backend_url = f"http://{vmss_name}.internal:8080/health"
+
+        start_time = time.time()
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
+            async with session.get(backend_url) as response:
+                if response.status == 200:
+                    latency_ms = int((time.time() - start_time) * 1000)
+                    return {"status": "healthy", "instances": 1, "latency_ms": latency_ms}
+                else:
+                    return {"status": "degraded", "error": f"HTTP {response.status}"}
+
+    except aiohttp.ClientError as e:
+        logger.warning(f"Inference backend health check failed: {e}")
+        return {"status": "unhealthy", "error": str(e)}
     except Exception as e:
         logger.error(f"Inference backend health check failed: {e}")
         return {"status": "unhealthy", "error": str(e)}
@@ -71,7 +98,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     response = {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now().isoformat() + "Z",
         "version": os.environ.get("WEBSITE_INSTANCE_ID", "local"),
         "checks": {},
     }
@@ -95,7 +122,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             cosmos_result = loop.run_until_complete(check_cosmos())
             backend_result = loop.run_until_complete(check_inference_backend())
 
-            response["checks"] = {"keyvault": kv_result, "cosmos": cosmos_result, "inference_backend": backend_result}
+            response["checks"] = {
+                "keyvault": kv_result,
+                "cosmos": cosmos_result,
+                "inference_backend": backend_result
+            }
 
             # Determine overall status
             unhealthy = [k for k, v in response["checks"].items() if v.get("status") == "unhealthy"]
@@ -115,13 +146,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         response["checks"]["initialization"] = {"status": "healthy"}
 
     else:
+        error_msg = {"error": f"Unknown check type: {check_type}"}
         return func.HttpResponse(
-            json.dumps({"error": f"Unknown check type: {check_type}"}), status_code=400, mimetype="application/json"
+            json.dumps(error_msg), status_code=400, mimetype="application/json"
         )
 
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "X-Health-Check": check_type
+    }
     return func.HttpResponse(
         json.dumps(response, indent=2),
         status_code=status_code,
         mimetype="application/json",
-        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "X-Health-Check": check_type},
+        headers=headers,
     )
