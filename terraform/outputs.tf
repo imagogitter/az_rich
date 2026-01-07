@@ -69,7 +69,7 @@ output "ssh_private_key_secret_name" {
 
 output "deployment_instructions" {
   description = "Instructions for accessing the deployment"
-  value = <<-EOT
+  value       = <<-EOT
     
     ╔════════════════════════════════════════════════════════════════════════════╗
     ║                    A100 GPU VMSS DEPLOYMENT COMPLETE                       ║

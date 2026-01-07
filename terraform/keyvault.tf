@@ -8,18 +8,18 @@ resource "azurerm_key_vault" "main" {
   resource_group_name = azurerm_resource_group.main.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
   sku_name            = "standard"
-  
+
   enable_rbac_authorization       = true
   enabled_for_deployment          = true
   enabled_for_template_deployment = true
   soft_delete_retention_days      = 7
   purge_protection_enabled        = false
-  
+
   network_acls {
     default_action = "Allow"
     bypass         = "AzureServices"
   }
-  
+
   tags = local.tags
 }
 
@@ -40,7 +40,7 @@ resource "azurerm_key_vault_secret" "inference_api_key" {
   name         = "inference-api-key"
   value        = random_password.api_key.result
   key_vault_id = azurerm_key_vault.main.id
-  
+
   depends_on = [azurerm_role_assignment.kv_admin]
 }
 
@@ -54,6 +54,6 @@ resource "azurerm_key_vault_secret" "internal_service_key" {
   name         = "internal-service-key"
   value        = random_password.internal_key.result
   key_vault_id = azurerm_key_vault.main.id
-  
+
   depends_on = [azurerm_role_assignment.kv_admin]
 }
