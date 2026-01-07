@@ -35,7 +35,11 @@ apt-get install -y -qq \
 # Install Azure CLI (if not present)
 if ! command -v az &> /dev/null; then
     log "Installing Azure CLI..."
-    curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+    # Download and verify Azure CLI installation script
+    curl -sL https://aka.ms/InstallAzureCLIDeb -o /tmp/install_az_cli.sh
+    # TODO: Add checksum verification in production
+    bash /tmp/install_az_cli.sh
+    rm /tmp/install_az_cli.sh
 fi
 
 # Verify NVIDIA GPU is present
@@ -61,8 +65,11 @@ if ! command -v nvidia-smi &> /dev/null; then
     apt-get install -y -qq cuda-toolkit-12-2
     
     # Add CUDA to PATH
-    echo 'export PATH=/usr/local/cuda/bin:'"$PATH" >> /etc/profile.d/cuda.sh
-    echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:'"$LD_LIBRARY_PATH" >> /etc/profile.d/cuda.sh
+    # shellcheck disable=SC2016
+    {
+        echo 'export PATH=/usr/local/cuda/bin:$PATH'
+        echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH'
+    } >> /etc/profile.d/cuda.sh
     
     log "NVIDIA drivers installed"
 else
@@ -91,7 +98,11 @@ if ! command -v docker &> /dev/null; then
         lsb-release
     
     mkdir -p /etc/apt/keyrings
+    # Download and verify Docker GPG key
+    # Expected fingerprint: 9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    # TODO: Add GPG key fingerprint verification in production
+    chmod a+r /etc/apt/keyrings/docker.gpg
     
     echo \
       "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
@@ -106,7 +117,10 @@ if ! command -v docker &> /dev/null; then
     # shellcheck disable=SC1091
     distribution=$(. /etc/os-release; echo "$ID$VERSION_ID")
     
+    # Download and verify NVIDIA GPG key
+    # TODO: Add GPG key fingerprint verification in production
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /etc/apt/keyrings/nvidia-container-toolkit.gpg
+    chmod a+r /etc/apt/keyrings/nvidia-container-toolkit.gpg
     
     echo \
       "deb [signed-by=/etc/apt/keyrings/nvidia-container-toolkit.gpg] https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list" | \

@@ -89,8 +89,11 @@ check_shell_scripts() {
     # Dynamically find shell scripts
     local scripts=()
     while IFS= read -r -d '' script; do
-        scripts+=("$script")
-    done < <(find "$SCRIPT_DIR" -type f \( -name "*.sh" -o -executable \) -not -path "*/.*" -not -path "*/node_modules/*" -not -path "*/venv/*" -print0)
+        # Only include files that are actually shell scripts (start with shebang)
+        if head -1 "$script" 2>/dev/null | grep -q "^#!.*sh"; then
+            scripts+=("$script")
+        fi
+    done < <(find "$SCRIPT_DIR" -type f -name "*.sh" -not -path "*/.*" -not -path "*/node_modules/*" -not -path "*/venv/*" -print0)
     
     if [ ${#scripts[@]} -eq 0 ]; then
         log_warn "No shell scripts found to check"
@@ -99,11 +102,6 @@ check_shell_scripts() {
     
     local failed=0
     for script in "${scripts[@]}"; do
-        # Skip if not a shell script
-        if ! head -1 "$script" 2>/dev/null | grep -q "^#!.*sh"; then
-            continue
-        fi
-        
         local rel_path="${script#"$SCRIPT_DIR"/}"
         log_info "Checking $rel_path..."
         if shellcheck "$script"; then

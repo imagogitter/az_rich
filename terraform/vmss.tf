@@ -192,12 +192,13 @@ resource "azurerm_linux_virtual_machine_scale_set" "gpu" {
     enable_accelerated_networking = true
   }
   
-  # Custom data for GPU setup
+  # Custom data for GPU setup (contains Key Vault name configuration)
+  # Marked sensitive to prevent logging in Terraform output
   custom_data = base64encode(templatefile("${path.module}/scripts/gpu-setup.sh", {
     key_vault_name = azurerm_key_vault.main.name
   }))
   
-  sensitive = true  # Mark as sensitive since custom_data may contain configuration
+  sensitive = true
   
   # Enable automatic OS upgrades
   automatic_os_upgrade_policy {
