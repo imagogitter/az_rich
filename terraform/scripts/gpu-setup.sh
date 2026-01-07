@@ -23,7 +23,7 @@ apt-get update -qq
 log "Installing required packages..."
 apt-get install -y -qq \
     build-essential \
-    linux-headers-$(uname -r) \
+    "linux-headers-$(uname -r)" \
     dkms \
     curl \
     wget \
@@ -61,8 +61,8 @@ if ! command -v nvidia-smi &> /dev/null; then
     apt-get install -y -qq cuda-toolkit-12-2
     
     # Add CUDA to PATH
-    echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/profile.d/cuda.sh
-    echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> /etc/profile.d/cuda.sh
+    echo 'export PATH=/usr/local/cuda/bin:'"$PATH" >> /etc/profile.d/cuda.sh
+    echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:'"$LD_LIBRARY_PATH" >> /etc/profile.d/cuda.sh
     
     log "NVIDIA drivers installed"
 else
@@ -90,9 +90,10 @@ if ! command -v docker &> /dev/null; then
     
     # Install NVIDIA Container Toolkit
     log "Installing NVIDIA Container Toolkit..."
-    distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+    # shellcheck disable=SC1091
+    distribution=$(. /etc/os-release; echo "$ID$VERSION_ID")
     curl -s -L https://nvidia.github.io/libnvidia-container/gpgkey | apt-key add -
-    curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | \
+    curl -s -L "https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list" | \
         tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
     apt-get update -qq
     apt-get install -y -qq nvidia-container-toolkit
@@ -116,10 +117,13 @@ pip3 install \
     azure-keyvault-secrets
 
 # Get Key Vault name from template parameter
+# Note: key_vault_name is provided by Terraform templatefile function
+# shellcheck disable=SC2154
 KEY_VAULT_NAME="${key_vault_name}"
 
 # Authenticate to Azure using managed identity
 log "Authenticating to Azure with managed identity..."
+log "Key Vault configured: $KEY_VAULT_NAME"
 # Wait for managed identity to be available
 sleep 30
 
