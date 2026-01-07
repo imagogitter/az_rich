@@ -75,3 +75,9 @@ variable "enable_ddos_protection" {
   type        = bool
   default     = false
 }
+
+variable "enable_weekend_scale_to_zero" {
+  description = "Enable automatic scale to 0 on weekends (Saturday/Sunday). Disable for 24/7 production workloads."
+  type        = bool
+  default     = false
+}

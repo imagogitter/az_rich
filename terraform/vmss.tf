@@ -197,6 +197,8 @@ resource "azurerm_linux_virtual_machine_scale_set" "gpu" {
     key_vault_name = azurerm_key_vault.main.name
   }))
   
+  sensitive = true  # Mark as sensitive since custom_data may contain configuration
+  
   # Enable automatic OS upgrades
   automatic_os_upgrade_policy {
     disable_automatic_rollback  = false
@@ -302,21 +304,26 @@ resource "azurerm_monitor_autoscale_setting" "vmss" {
   }
   
   # Scale based on schedule (optional - scale to 0 during off-hours)
-  profile {
-    name = "offHoursProfile"
+  # Only enabled when enable_weekend_scale_to_zero is true
+  dynamic "profile" {
+    for_each = var.enable_weekend_scale_to_zero ? [1] : []
     
-    capacity {
-      default = 0
-      minimum = 0
-      maximum = var.vmss_max_instances
-    }
-    
-    # Example: Scale to 0 on weekends
-    recurrence {
-      timezone = "UTC"
-      days     = ["Saturday", "Sunday"]
-      hours    = [0]
-      minutes  = [0]
+    content {
+      name = "offHoursProfile"
+      
+      capacity {
+        default = 0
+        minimum = 0
+        maximum = var.vmss_max_instances
+      }
+      
+      # Scale to 0 on weekends (Saturday and Sunday)
+      recurrence {
+        timezone = "UTC"
+        days     = ["Saturday", "Sunday"]
+        hours    = [0]
+        minutes  = [0]
+      }
     }
   }
   

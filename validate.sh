@@ -86,23 +86,31 @@ check_shell_scripts() {
         return 0
     fi
     
-    local scripts=(
-        "deploy-full-clean.sh"
-        "terraform/scripts/gpu-setup.sh"
-    )
+    # Dynamically find shell scripts
+    local scripts=()
+    while IFS= read -r -d '' script; do
+        scripts+=("$script")
+    done < <(find "$SCRIPT_DIR" -type f \( -name "*.sh" -o -executable \) -not -path "*/.*" -not -path "*/node_modules/*" -not -path "*/venv/*" -print0)
+    
+    if [ ${#scripts[@]} -eq 0 ]; then
+        log_warn "No shell scripts found to check"
+        return 0
+    fi
     
     local failed=0
     for script in "${scripts[@]}"; do
-        if [ -f "$SCRIPT_DIR/$script" ]; then
-            log_info "Checking $script..."
-            if shellcheck "$SCRIPT_DIR/$script"; then
-                log_info "✅ $script passed shellcheck"
-            else
-                log_error "❌ $script has shellcheck issues"
-                failed=1
-            fi
+        # Skip if not a shell script
+        if ! head -1 "$script" 2>/dev/null | grep -q "^#!.*sh"; then
+            continue
+        fi
+        
+        local rel_path="${script#"$SCRIPT_DIR"/}"
+        log_info "Checking $rel_path..."
+        if shellcheck "$script"; then
+            log_info "✅ $rel_path passed shellcheck"
         else
-            log_warn "Script not found: $script"
+            log_error "❌ $rel_path has shellcheck issues"
+            failed=1
         fi
     done
     

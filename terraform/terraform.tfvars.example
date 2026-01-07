@@ -23,5 +23,9 @@ vmss_spot_max_price = -1  # -1 = pay up to on-demand price
 # Admin Configuration
 admin_email = "admin@example.com"  # Email for alerts and notifications
 
+# Weekend Scaling (Optional)
+enable_weekend_scale_to_zero = false  # Set to true to scale to 0 on weekends (Sat/Sun)
+                                      # Disable for 24/7 production workloads
+
 # Security (Optional)
 enable_ddos_protection = false  # Enable for production workloads (+$2,944/month)

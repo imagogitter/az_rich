@@ -84,17 +84,34 @@ fi
 # Install Docker (for containerized inference)
 if ! command -v docker &> /dev/null; then
     log "Installing Docker..."
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sh get-docker.sh
+    # Use official Docker installation method
+    apt-get install -y -qq \
+        ca-certificates \
+        gnupg \
+        lsb-release
+    
+    mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+    
+    apt-get update -qq
+    apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     usermod -aG docker azureuser
     
     # Install NVIDIA Container Toolkit
     log "Installing NVIDIA Container Toolkit..."
     # shellcheck disable=SC1091
     distribution=$(. /etc/os-release; echo "$ID$VERSION_ID")
-    curl -s -L https://nvidia.github.io/libnvidia-container/gpgkey | apt-key add -
-    curl -s -L "https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list" | \
-        tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /etc/apt/keyrings/nvidia-container-toolkit.gpg
+    
+    echo \
+      "deb [signed-by=/etc/apt/keyrings/nvidia-container-toolkit.gpg] https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list" | \
+        tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
+    
     apt-get update -qq
     apt-get install -y -qq nvidia-container-toolkit
     systemctl restart docker
@@ -162,15 +179,20 @@ async def health():
 
 @app.post("/inference")
 async def inference(request: InferenceRequest):
-    """Run inference"""
+    """Run inference - PLACEHOLDER FOR ACTUAL MODEL"""
     if not torch.cuda.is_available():
         raise HTTPException(status_code=503, detail="GPU not available")
     
-    # Placeholder for actual model inference
+    # TODO: Replace with actual model inference
+    # Example: Load model and run inference on GPU
+    # This is a placeholder that demonstrates GPU availability
+    # Production systems should load actual models (e.g., Llama, Mixtral)
+    
     return {
         "result": f"Processed: {request.prompt[:50]}...",
         "tokens": request.max_tokens,
-        "gpu_used": torch.cuda.get_device_name(0)
+        "gpu_used": torch.cuda.get_device_name(0),
+        "note": "This is a placeholder. Replace with actual model inference."
     }
 
 if __name__ == "__main__":
