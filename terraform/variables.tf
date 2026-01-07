@@ -31,15 +31,20 @@ variable "location" {
 }
 
 variable "vmss_sku" {
-  description = "VM SKU for GPU instances"
+  description = "VM SKU for GPU instances (A100 GPUs)"
   type        = string
-  default     = "Standard_NC4as_T4_v3"
+  default     = "Standard_ND96asr_v4"  # 8x NVIDIA A100 40GB GPUs
+  
+  validation {
+    condition     = can(regex("^Standard_ND.*v4$", var.vmss_sku))
+    error_message = "VM SKU must be an ND v4 series for A100 GPUs (e.g., Standard_ND96asr_v4)."
+  }
 }
 
 variable "vmss_spot_max_price" {
-  description = "Maximum price for spot instances (-1 for on-demand price)"
+  description = "Maximum price for spot instances (-1 for on-demand price). A100 spot pricing varies by region."
   type        = number
-  default     = 0.15
+  default     = -1  # -1 means pay up to on-demand price
 }
 
 variable "vmss_min_instances" {
@@ -49,9 +54,14 @@ variable "vmss_min_instances" {
 }
 
 variable "vmss_max_instances" {
-  description = "Maximum VMSS instances"
+  description = "Maximum VMSS instances (each with 8x A100 GPUs)"
   type        = number
-  default     = 20
+  default     = 8
+  
+  validation {
+    condition     = var.vmss_max_instances >= 1 && var.vmss_max_instances <= 100
+    error_message = "Maximum instances must be between 1 and 100."
+  }
 }
 
 variable "admin_email" {

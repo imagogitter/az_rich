@@ -7,8 +7,8 @@ LOCATION="${AZURE_LOCATION:-eastus}"
 RESOURCE_GROUP="${PROJECT_NAME}-rg"
 TAGS="project=${PROJECT_NAME} environment=production managed-by=script"
 APIM_SKU="Consumption"
-VMSS_SKU="Standard_NC4as_T4_v3"
-SPOT_MAX_PRICE="0.15"
+VMSS_SKU="Standard_ND96asr_v4"  # 8x NVIDIA A100 40GB GPUs
+SPOT_MAX_PRICE="-1"  # -1 means pay up to on-demand price
 
 log() { echo -e "[INFO] $*"; }
 warn() { echo -e "[WARN] $*"; }
