@@ -1,6 +1,7 @@
 # Environment
 .env
 .env.*
+!.env.example
 *.env
 
 # Terraform
@@ -33,4 +34,4 @@ Thumbs.db
 # Secrets
 *.pem
 *.key
-secrets/
+secrets/configuration-report-*.txt
