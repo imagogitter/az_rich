@@ -4,6 +4,8 @@ GPU-based AI inference reselling platform with 200-300% margins using Azure spot
 
 ## Quick Start
 
+**🚀 [Frontend Quick Start Guide](QUICKSTART-FRONTEND.md)** - Get up and running in 4 steps!
+
 ```bash
 # Step 1: Deploy infrastructure
 cd terraform && terraform init && terraform apply
