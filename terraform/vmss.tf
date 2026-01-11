@@ -63,7 +63,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "gpu" {
   sku                 = var.vmss_sku
   instances           = var.vmss_min_instances
   admin_username      = "azureuser"
-  admin_password      = "P@ssw0rd1234!" # Change this in production or use SSH keys
+  admin_password      = var.vmss_admin_password != "" ? var.vmss_admin_password : "ChangeMe!${random_string.suffix.result}"
   priority            = "Spot"
   eviction_policy     = "Deallocate"
   max_bid_price       = var.vmss_spot_max_price
@@ -111,7 +111,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "gpu" {
     auto_upgrade_minor_version = true
 
     settings = jsonencode({
-      "commandToExecute" = "apt-get update && apt-get install -y nvidia-driver-535 && systemctl restart nvidia-persistenced"
+      "commandToExecute" = "apt-get update && apt-get install -y nvidia-driver-${var.vmss_nvidia_driver_version} && systemctl restart nvidia-persistenced"
     })
   }
 

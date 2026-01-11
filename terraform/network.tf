@@ -67,7 +67,7 @@ resource "azurerm_network_security_group" "vmss" {
     destination_address_prefix = "*"
   }
 
-  # Allow SSH for management (restrict in production)
+  # Allow SSH for management (restrict in production via allowed_ssh_source_addresses variable)
   security_rule {
     name                       = "AllowSSH"
     priority                   = 200
@@ -76,7 +76,7 @@ resource "azurerm_network_security_group" "vmss" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "Internet"
+    source_address_prefixes    = var.allowed_ssh_source_addresses
     destination_address_prefix = "*"
   }
 

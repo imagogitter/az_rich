@@ -1,0 +1,46 @@
+# =============================================================================
+# Terraform Variables Example
+# Copy this file to terraform.tfvars and customize for your deployment
+# =============================================================================
+
+# Project Configuration
+project_name = "ai-inference"
+environment  = "prod"
+location     = "eastus"
+
+# Admin Configuration
+admin_email = "admin@example.com"
+
+# VMSS (GPU Instances) Configuration
+vmss_sku            = "Standard_NC4as_T4_v3"
+vmss_spot_max_price = 0.15
+vmss_min_instances  = 0
+vmss_max_instances  = 20
+
+# Security Configuration
+
+# VMSS Admin Password (IMPORTANT: Change in production or use SSH keys)
+# Leave empty to auto-generate a random password
+# vmss_admin_password = "YourSecurePassword!123"
+
+# NVIDIA Driver Version (adjust based on your GPU requirements)
+vmss_nvidia_driver_version = "535"
+
+# CORS Origins (IMPORTANT: Restrict to specific domains in production)
+# Example for production:
+# allowed_cors_origins = [
+#   "https://yourdomain.com",
+#   "https://app.yourdomain.com"
+# ]
+allowed_cors_origins = ["*"]  # Allows all origins (use only for development)
+
+# SSH Source Addresses (IMPORTANT: Restrict to management IPs in production)
+# Example for production:
+# allowed_ssh_source_addresses = [
+#   "203.0.113.0/24",  # Your office IP range
+#   "198.51.100.10/32" # Your VPN IP
+# ]
+allowed_ssh_source_addresses = ["*"]  # Allows all IPs (use only for development)
+
+# Optional: DDoS Protection (additional cost)
+# enable_ddos_protection = true

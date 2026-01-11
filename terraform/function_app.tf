@@ -32,7 +32,7 @@ resource "azurerm_linux_function_app" "main" {
 
     # Enable CORS for API access
     cors {
-      allowed_origins = ["*"]
+      allowed_origins = var.allowed_cors_origins
     }
   }
 

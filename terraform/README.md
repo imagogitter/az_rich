@@ -62,7 +62,7 @@ The Terraform configuration deploys the following Azure resources:
 
 ### Required Variables
 
-Create a `terraform.tfvars` file:
+Create a `terraform.tfvars` file (or copy from `terraform.tfvars.example`):
 
 ```hcl
 project_name = "ai-inference"
@@ -70,11 +70,27 @@ environment  = "prod"
 location     = "eastus"
 admin_email  = "your-email@example.com"
 
+# Security Configuration (IMPORTANT for production)
+# Restrict CORS to specific domains
+allowed_cors_origins = [
+  "https://yourdomain.com",
+  "https://app.yourdomain.com"
+]
+
+# Restrict SSH access to management IPs only
+allowed_ssh_source_addresses = [
+  "203.0.113.0/24"  # Your office IP range
+]
+
+# Set a secure admin password or use SSH keys
+vmss_admin_password = "YourSecurePassword!123"
+
 # Optional: Customize VMSS settings
-vmss_sku             = "Standard_NC4as_T4_v3"
-vmss_spot_max_price  = 0.15
-vmss_min_instances   = 0
-vmss_max_instances   = 20
+vmss_sku                   = "Standard_NC4as_T4_v3"
+vmss_spot_max_price        = 0.15
+vmss_min_instances         = 0
+vmss_max_instances         = 20
+vmss_nvidia_driver_version = "535"
 ```
 
 ### Optional: SSH Key for VMSS
@@ -321,16 +337,34 @@ terraform/
 
 ## Security Best Practices
 
-1. **Rotate secrets regularly** in Key Vault
-2. **Enable RBAC** for all resources
-3. **Use private endpoints** for production
-4. **Enable Azure Policy** compliance
-5. **Configure backup** for critical data
-6. **Enable DDoS protection** for public endpoints
-7. **Use managed identities** instead of keys where possible
-8. **Enable audit logging** on Key Vault
-9. **Restrict NSG rules** to minimum required
-10. **Use Azure Firewall** for egress filtering in production
+### Critical Configuration (Before Production Deployment)
+
+1. **Restrict CORS Origins**
+   - Edit `allowed_cors_origins` in `terraform.tfvars`
+   - Remove `["*"]` and specify exact domains
+   - Example: `["https://yourdomain.com", "https://app.yourdomain.com"]`
+
+2. **Restrict SSH Access**
+   - Edit `allowed_ssh_source_addresses` in `terraform.tfvars`
+   - Remove `["*"]` and specify management IPs only
+   - Example: `["203.0.113.0/24", "198.51.100.10/32"]`
+
+3. **Secure VMSS Access**
+   - Set `vmss_admin_password` to a strong password, OR
+   - Generate SSH keys: `ssh-keygen -t rsa -b 4096 -f terraform/ssh_key -N ""`
+   - Uncomment SSH key configuration in `vmss.tf`
+
+### General Security Practices
+
+4. **Rotate secrets regularly** in Key Vault
+5. **Enable RBAC** for all resources (already configured)
+6. **Use private endpoints** for Cosmos DB and Storage in production
+7. **Enable Azure Policy** compliance
+8. **Configure backup** for critical data
+9. **Enable DDoS protection** (set `enable_ddos_protection = true` in tfvars)
+10. **Use managed identities** instead of keys where possible (already configured)
+11. **Enable audit logging** on Key Vault (already configured)
+12. **Use Azure Firewall** for egress filtering in production
 
 ## Support
 

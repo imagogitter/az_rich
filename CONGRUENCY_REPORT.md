@@ -261,13 +261,16 @@ None - All documented features are implemented in IaC.
 ### Recommendations for Production
 
 1. **SSH Key Management**: Generate and configure SSH keys for VMSS (currently using password)
-2. **DDoS Protection**: Enable for production workloads (currently disabled due to cost)
-3. **Private Endpoints**: Use private endpoints for Cosmos DB and Storage in production
-4. **Backup Configuration**: Set up Azure Backup for critical data
-5. **Azure Policy**: Implement compliance policies
-6. **Bicep Modules**: Complete the Bicep module implementations in `/ai-inference-demo/bicep/modules/`
-7. **Alert Rules**: Configure Azure Monitor alert rules for critical metrics
-8. **Auto-scaling Metrics**: Add custom metrics for queue depth-based scaling
+2. **VMSS Admin Password**: Set `vmss_admin_password` variable or use SSH keys only
+3. **CORS Origins**: Restrict `allowed_cors_origins` to specific domains (currently allows all)
+4. **SSH Source IPs**: Restrict `allowed_ssh_source_addresses` to management IPs (currently allows all)
+5. **DDoS Protection**: Enable for production workloads (currently disabled due to cost)
+6. **Private Endpoints**: Use private endpoints for Cosmos DB and Storage in production
+7. **Backup Configuration**: Set up Azure Backup for critical data
+8. **Azure Policy**: Implement compliance policies
+9. **Bicep Modules**: Complete the Bicep module implementations in `/ai-inference-demo/bicep/modules/`
+10. **Alert Rules**: Configure Azure Monitor alert rules for critical metrics
+11. **Auto-scaling Metrics**: Add custom metrics for queue depth-based scaling
 
 ---
 

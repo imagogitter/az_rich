@@ -60,8 +60,33 @@ variable "admin_email" {
   default     = "admin@example.com"
 }
 
+variable "vmss_admin_password" {
+  description = "Admin password for VMSS instances (use SSH keys in production)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "vmss_nvidia_driver_version" {
+  description = "NVIDIA driver version for GPU instances"
+  type        = string
+  default     = "535"
+}
+
 variable "enable_ddos_protection" {
   description = "Enable DDoS protection (additional cost)"
   type        = bool
   default     = false
+}
+
+variable "allowed_cors_origins" {
+  description = "Allowed CORS origins for Function App (use specific domains in production)"
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "allowed_ssh_source_addresses" {
+  description = "Allowed source IP addresses for SSH access (restrict in production)"
+  type        = list(string)
+  default     = ["*"]
 }
