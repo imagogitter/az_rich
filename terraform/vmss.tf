@@ -9,7 +9,7 @@ resource "azurerm_public_ip" "vmss" {
   resource_group_name = azurerm_resource_group.main.name
   allocation_method   = "Static"
   sku                 = "Standard"
-  
+
   tags = local.tags
 }
 
@@ -19,12 +19,12 @@ resource "azurerm_lb" "vmss" {
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   sku                 = "Standard"
-  
+
   frontend_ip_configuration {
     name                 = "PublicIPAddress"
     public_ip_address_id = azurerm_public_ip.vmss.id
   }
-  
+
   tags = local.tags
 }
 
@@ -67,33 +67,33 @@ resource "azurerm_linux_virtual_machine_scale_set" "gpu" {
   priority            = "Spot"
   eviction_policy     = "Deallocate"
   max_bid_price       = var.vmss_spot_max_price
-  
+
   # Note: Generate SSH key before deploying: ssh-keygen -t rsa -b 4096 -f terraform/ssh_key -N ""
   # Or set disable_password_authentication = false and provide admin_password instead
   disable_password_authentication = false
-  
+
   # Uncomment when SSH key is available:
   # admin_ssh_key {
   #   username   = "azureuser"
   #   public_key = file("${path.module}/ssh_key.pub")
   # }
-  
+
   source_image_reference {
     publisher = "Canonical"
     offer     = "0001-com-ubuntu-server-jammy"
     sku       = "22_04-lts-gen2"
     version   = "latest"
   }
-  
+
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Premium_LRS"
   }
-  
+
   network_interface {
     name    = "vmss-nic"
     primary = true
-    
+
     ip_configuration {
       name                                   = "internal"
       primary                                = true
@@ -101,7 +101,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "gpu" {
       load_balancer_backend_address_pool_ids = [azurerm_lb_backend_address_pool.vmss.id]
     }
   }
-  
+
   # Custom script extension for GPU driver installation
   extension {
     name                       = "gpu-drivers"
@@ -109,16 +109,16 @@ resource "azurerm_linux_virtual_machine_scale_set" "gpu" {
     type                       = "CustomScript"
     type_handler_version       = "2.1"
     auto_upgrade_minor_version = true
-    
+
     settings = jsonencode({
       "commandToExecute" = "apt-get update && apt-get install -y nvidia-driver-535 && systemctl restart nvidia-persistenced"
     })
   }
-  
+
   identity {
     type = "SystemAssigned"
   }
-  
+
   tags = local.tags
 }
 
@@ -128,16 +128,16 @@ resource "azurerm_monitor_autoscale_setting" "vmss" {
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   target_resource_id  = azurerm_linux_virtual_machine_scale_set.gpu.id
-  
+
   profile {
     name = "defaultProfile"
-    
+
     capacity {
       default = var.vmss_min_instances
       minimum = var.vmss_min_instances
       maximum = var.vmss_max_instances
     }
-    
+
     # Scale out rule (based on CPU)
     rule {
       metric_trigger {
@@ -150,7 +150,7 @@ resource "azurerm_monitor_autoscale_setting" "vmss" {
         operator           = "GreaterThan"
         threshold          = 70
       }
-      
+
       scale_action {
         direction = "Increase"
         type      = "ChangeCount"
@@ -158,7 +158,7 @@ resource "azurerm_monitor_autoscale_setting" "vmss" {
         cooldown  = "PT5M"
       }
     }
-    
+
     # Scale in rule (based on CPU)
     rule {
       metric_trigger {
@@ -171,7 +171,7 @@ resource "azurerm_monitor_autoscale_setting" "vmss" {
         operator           = "LessThan"
         threshold          = 30
       }
-      
+
       scale_action {
         direction = "Decrease"
         type      = "ChangeCount"
@@ -180,6 +180,6 @@ resource "azurerm_monitor_autoscale_setting" "vmss" {
       }
     }
   }
-  
+
   tags = local.tags
 }

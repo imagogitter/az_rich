@@ -9,11 +9,11 @@ resource "azurerm_api_management" "main" {
   publisher_name      = var.project_name
   publisher_email     = var.admin_email
   sku_name            = "Consumption_0"
-  
+
   identity {
     type = "SystemAssigned"
   }
-  
+
   tags = local.tags
 }
 
@@ -23,7 +23,7 @@ resource "azurerm_api_management_logger" "app_insights" {
   api_management_name = azurerm_api_management.main.name
   resource_group_name = azurerm_resource_group.main.name
   resource_id         = azurerm_application_insights.main.id
-  
+
   application_insights {
     instrumentation_key = azurerm_application_insights.main.instrumentation_key
   }
@@ -38,7 +38,7 @@ resource "azurerm_api_management_api" "inference" {
   display_name        = "AI Inference API"
   path                = "inference"
   protocols           = ["https"]
-  
+
   subscription_required = true
 }
 
@@ -51,7 +51,7 @@ resource "azurerm_api_management_api_operation" "health" {
   display_name        = "Health Check"
   method              = "GET"
   url_template        = "/health"
-  
+
   response {
     status_code = 200
     description = "Success"
@@ -67,7 +67,7 @@ resource "azurerm_api_management_api_operation" "list_models" {
   display_name        = "List Available Models"
   method              = "GET"
   url_template        = "/models"
-  
+
   response {
     status_code = 200
     description = "Success"
@@ -83,11 +83,11 @@ resource "azurerm_api_management_api_operation" "completions" {
   display_name        = "Generate Completion"
   method              = "POST"
   url_template        = "/completions"
-  
+
   request {
     description = "Completion request"
   }
-  
+
   response {
     status_code = 200
     description = "Success"
@@ -101,7 +101,7 @@ resource "azurerm_api_management_backend" "function_app" {
   api_management_name = azurerm_api_management.main.name
   protocol            = "http"
   url                 = "https://${azurerm_linux_function_app.main.default_hostname}/api"
-  
+
   credentials {
     header = {
       "x-functions-key" = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=internal-service-key)"
@@ -114,7 +114,7 @@ resource "azurerm_api_management_api_policy" "inference" {
   api_name            = azurerm_api_management_api.inference.name
   api_management_name = azurerm_api_management.main.name
   resource_group_name = azurerm_resource_group.main.name
-  
+
   xml_content = <<XML
 <policies>
   <inbound>

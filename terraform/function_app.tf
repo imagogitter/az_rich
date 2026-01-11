@@ -9,7 +9,7 @@ resource "azurerm_service_plan" "main" {
   resource_group_name = azurerm_resource_group.main.name
   os_type             = "Linux"
   sku_name            = "Y1" # Consumption plan
-  
+
   tags = local.tags
 }
 
@@ -21,21 +21,21 @@ resource "azurerm_linux_function_app" "main" {
   service_plan_id            = azurerm_service_plan.main.id
   storage_account_name       = azurerm_storage_account.main.name
   storage_account_access_key = azurerm_storage_account.main.primary_access_key
-  
+
   site_config {
     application_stack {
       python_version = "3.11"
     }
-    
+
     application_insights_key               = azurerm_application_insights.main.instrumentation_key
     application_insights_connection_string = azurerm_application_insights.main.connection_string
-    
+
     # Enable CORS for API access
     cors {
       allowed_origins = ["*"]
     }
   }
-  
+
   app_settings = {
     "FUNCTIONS_WORKER_RUNTIME"       = "python"
     "COSMOS_CONNECTION_STRING"       = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=cosmos-connection-string)"
@@ -43,11 +43,11 @@ resource "azurerm_linux_function_app" "main" {
     "INFERENCE_API_KEY"              = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=inference-api-key)"
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.main.instrumentation_key
   }
-  
+
   identity {
     type = "SystemAssigned"
   }
-  
+
   tags = local.tags
 }
 

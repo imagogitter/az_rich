@@ -138,17 +138,17 @@ output "application_insights_connection_string" {
 output "deployment_summary" {
   description = "Summary of deployed resources"
   value = {
-    resource_group    = azurerm_resource_group.main.name
-    location          = azurerm_resource_group.main.location
-    key_vault         = azurerm_key_vault.main.name
-    storage_account   = azurerm_storage_account.main.name
-    cosmos_db         = azurerm_cosmosdb_account.main.name
-    function_app      = azurerm_linux_function_app.main.name
-    vmss              = azurerm_linux_virtual_machine_scale_set.gpu.name
-    apim              = azurerm_api_management.main.name
-    vnet              = azurerm_virtual_network.main.name
-    log_analytics     = azurerm_log_analytics_workspace.main.name
-    app_insights      = azurerm_application_insights.main.name
-    api_endpoint      = "${azurerm_api_management.main.gateway_url}/inference"
+    resource_group  = azurerm_resource_group.main.name
+    location        = azurerm_resource_group.main.location
+    key_vault       = azurerm_key_vault.main.name
+    storage_account = azurerm_storage_account.main.name
+    cosmos_db       = azurerm_cosmosdb_account.main.name
+    function_app    = azurerm_linux_function_app.main.name
+    vmss            = azurerm_linux_virtual_machine_scale_set.gpu.name
+    apim            = azurerm_api_management.main.name
+    vnet            = azurerm_virtual_network.main.name
+    log_analytics   = azurerm_log_analytics_workspace.main.name
+    app_insights    = azurerm_application_insights.main.name
+    api_endpoint    = "${azurerm_api_management.main.gateway_url}/inference"
   }
 }

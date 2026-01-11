@@ -7,7 +7,7 @@ resource "azurerm_virtual_network" "main" {
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   address_space       = ["10.0.0.0/16"]
-  
+
   tags = local.tags
 }
 
@@ -25,10 +25,10 @@ resource "azurerm_subnet" "functions" {
   resource_group_name  = azurerm_resource_group.main.name
   virtual_network_name = azurerm_virtual_network.main.name
   address_prefixes     = ["10.0.2.0/24"]
-  
+
   delegation {
     name = "function-delegation"
-    
+
     service_delegation {
       name    = "Microsoft.Web/serverFarms"
       actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
@@ -41,7 +41,7 @@ resource "azurerm_network_security_group" "vmss" {
   name                = "${local.vmss_name}-nsg"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
-  
+
   # Allow HTTP/HTTPS inbound from Function Apps
   security_rule {
     name                       = "AllowHTTP"
@@ -54,7 +54,7 @@ resource "azurerm_network_security_group" "vmss" {
     source_address_prefix      = "VirtualNetwork"
     destination_address_prefix = "*"
   }
-  
+
   security_rule {
     name                       = "AllowHTTPS"
     priority                   = 101
@@ -66,7 +66,7 @@ resource "azurerm_network_security_group" "vmss" {
     source_address_prefix      = "VirtualNetwork"
     destination_address_prefix = "*"
   }
-  
+
   # Allow SSH for management (restrict in production)
   security_rule {
     name                       = "AllowSSH"
@@ -79,7 +79,7 @@ resource "azurerm_network_security_group" "vmss" {
     source_address_prefix      = "Internet"
     destination_address_prefix = "*"
   }
-  
+
   tags = local.tags
 }
 
