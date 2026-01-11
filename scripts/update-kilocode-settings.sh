@@ -120,7 +120,7 @@ check_prerequisites() {
     local major_version=$(echo "$python_version" | cut -d. -f1)
     local minor_version=$(echo "$python_version" | cut -d. -f2)
     
-    if [ "$major_version" -lt 3 ] || ([ "$major_version" -eq 3 ] && [ "$minor_version" -lt 11 ]); then
+    if [ "$major_version" -lt 3 ] || { [ "$major_version" -eq 3 ] && [ "$minor_version" -lt 11 ]; }; then
         log_error "Python 3.11 or higher required. Found: $python_version"
         return 1
     fi
