@@ -33,4 +33,4 @@ Thumbs.db
 # Secrets
 *.pem
 *.key
-secrets/
+secrets/configuration-report-*.txt
