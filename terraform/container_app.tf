@@ -87,7 +87,7 @@ resource "azurerm_container_app" "frontend" {
 
       env {
         name  = "ENABLE_SIGNUP"
-        value = "false"
+        value = "true"
       }
 
       env {

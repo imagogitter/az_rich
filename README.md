@@ -5,17 +5,21 @@ GPU-based AI inference reselling platform with 200-300% margins using Azure spot
 ## Quick Start
 
 ```bash
-# Option 1: Full deployment with frontend
-./deploy.sh              # Deploy infrastructure
-./deploy-frontend.sh     # Deploy frontend UI
-
-# Option 2: Terraform
+# Step 1: Deploy infrastructure
 cd terraform && terraform init && terraform apply
-./deploy-frontend.sh
 
-# Option 3: Bicep
-az deployment sub create --location eastus --template-file bicep/main.bicep
+# Step 2: Deploy frontend
+cd .. && ./deploy-frontend.sh
+
+# Step 3: Get frontend URL and create admin account
+cd terraform && terraform output frontend_url
+# Visit the URL and create your admin account
+
+# Step 4: Secure the frontend (disable public signup)
+cd .. && ./setup-frontend-auth.sh
 ```
+
+For detailed instructions, see the [Frontend Deployment Guide](docs/frontend-deployment.md).
 
 ## Frontend Web UI
 
@@ -68,6 +72,8 @@ Navigate to the URL and create an admin account on first visit.
 
 ## Documentation
 
+- [Frontend Deployment Guide](docs/frontend-deployment.md)
+- [Frontend Usage Guide](docs/frontend-usage.md)
 - Deployment Guide
 - API Usage
 - Architecture
