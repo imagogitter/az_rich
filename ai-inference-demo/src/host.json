@@ -15,5 +15,12 @@
   },
   "healthMonitor": {
     "enabled": true
+  },
+  "languageWorkers": {
+    "python": {
+      "processOptions": {
+        "checkpointFrequency": 0
+      }
+    }
   }
 }
