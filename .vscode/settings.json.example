@@ -1,0 +1,69 @@
+{
+  "kilocode.customProviders": [
+    {
+      "name": "Azure AI Inference",
+      "type": "openai-compatible",
+      "enabled": true,
+      "baseURL": "https://YOUR-APIM-NAME.azure-api.net/inference",
+      "apiKey": "${env:AZURE_AI_API_KEY}",
+      "headers": {
+        "Ocp-Apim-Subscription-Key": "${env:AZURE_AI_API_KEY}",
+        "X-Client-Name": "kilocode-vscode"
+      },
+      "models": [
+        {
+          "id": "mixtral-8x7b",
+          "name": "Mixtral 8x7B",
+          "contextLength": 32768,
+          "pricing": {
+            "prompt": 0.002,
+            "completion": 0.002
+          },
+          "description": "Best for complex reasoning, long documents, and multi-step tasks"
+        },
+        {
+          "id": "llama-3-70b",
+          "name": "Llama 3 70B",
+          "contextLength": 8192,
+          "pricing": {
+            "prompt": 0.003,
+            "completion": 0.003
+          },
+          "description": "Balanced option for most coding tasks"
+        },
+        {
+          "id": "phi-3-mini",
+          "name": "Phi-3 Mini",
+          "contextLength": 4096,
+          "pricing": {
+            "prompt": 0.0005,
+            "completion": 0.0005
+          },
+          "description": "Fastest and most cost-effective for simple tasks"
+        },
+        {
+          "id": "auto",
+          "name": "Auto-select",
+          "description": "Automatically choose the best model based on prompt complexity"
+        }
+      ],
+      "timeout": 30000,
+      "retries": 3,
+      "retryDelay": 1000,
+      "caching": {
+        "enabled": true,
+        "ttl": 86400
+      }
+    }
+  ],
+  "kilocode.defaultProvider": "Azure AI Inference",
+  "kilocode.defaultModel": "auto",
+  "kilocode.rateLimits": {
+    "requestsPerMinute": 900,
+    "tokensPerMinute": 100000
+  },
+  "kilocode.logging": {
+    "enabled": false,
+    "level": "info"
+  }
+}

@@ -22,7 +22,7 @@ local.settings.json
 .func/
 
 # IDE
-.vscode/
+.vscode/settings.json
 .idea/
 *.swp
 
@@ -33,4 +33,4 @@ Thumbs.db
 # Secrets
 *.pem
 *.key
-secrets/
+secrets/.vscode/settings.json
