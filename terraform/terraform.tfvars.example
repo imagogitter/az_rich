@@ -1,0 +1,31 @@
+# =============================================================================
+# Terraform Variables Configuration
+# =============================================================================
+# Copy this file to terraform.tfvars and customize for your deployment
+
+# Project Configuration
+project_name = "ai-inference"
+environment  = "prod"
+location     = "eastus"  # Regions with A100 availability: eastus, westus2, southcentralus
+
+# A100 GPU Configuration
+vmss_sku           = "Standard_ND96asr_v4"  # 8x NVIDIA A100 40GB GPUs
+# Alternative: "Standard_ND96amsr_A100_v4"  # 8x NVIDIA A100 80GB GPUs
+
+# Scaling Configuration
+vmss_min_instances = 0  # Scale to 0 for $0 idle cost
+vmss_max_instances = 8  # Maximum 8 instances (64 A100 GPUs total)
+
+# Spot Instance Pricing
+vmss_spot_max_price = -1  # -1 = pay up to on-demand price
+# Set a specific max price: vmss_spot_max_price = 5.0  # $5/hour max
+
+# Admin Configuration
+admin_email = "admin@example.com"  # Email for alerts and notifications
+
+# Weekend Scaling (Optional)
+enable_weekend_scale_to_zero = false  # Set to true to scale to 0 on weekends (Sat/Sun)
+                                      # Disable for 24/7 production workloads
+
+# Security (Optional)
+enable_ddos_protection = false  # Enable for production workloads (+$2,944/month)
