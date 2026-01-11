@@ -66,6 +66,8 @@ resource "azurerm_container_app" "frontend" {
   template {
     container {
       name   = "open-webui"
+      # Note: Using :latest tag for simplicity. For production, consider using
+      # specific version tags or image digests for better control and reproducibility.
       image  = "${azurerm_container_registry.frontend.login_server}/open-webui:latest"
       cpu    = 0.5
       memory = "1Gi"

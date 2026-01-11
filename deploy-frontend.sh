@@ -15,8 +15,9 @@ command -v docker >/dev/null 2>&1 || error "Docker not found"
 RESOURCE_GROUP=$(cd terraform && terraform output -raw resource_group_name 2>/dev/null || echo "")
 REGISTRY_NAME=$(cd terraform && terraform output -raw container_registry_name 2>/dev/null || echo "")
 REGISTRY_LOGIN_SERVER=$(cd terraform && terraform output -raw container_registry_login_server 2>/dev/null || echo "")
+FRONTEND_APP_NAME=$(cd terraform && terraform output -raw frontend_app_name 2>/dev/null || echo "")
 
-if [ -z "$RESOURCE_GROUP" ] || [ -z "$REGISTRY_NAME" ] || [ -z "$REGISTRY_LOGIN_SERVER" ]; then
+if [ -z "$RESOURCE_GROUP" ] || [ -z "$REGISTRY_NAME" ] || [ -z "$REGISTRY_LOGIN_SERVER" ] || [ -z "$FRONTEND_APP_NAME" ]; then
   error "Could not get Terraform outputs. Run 'terraform apply' first."
 fi
 
@@ -42,7 +43,7 @@ docker push "${REGISTRY_LOGIN_SERVER}/open-webui:latest" || error "Failed to pus
 log "✅ Frontend image deployed successfully!"
 log ""
 log "To restart the container app with the new image:"
-log "  az containerapp revision restart --name ai-inference-platform-frontend --resource-group $RESOURCE_GROUP"
+log "  az containerapp revision restart --name $FRONTEND_APP_NAME --resource-group $RESOURCE_GROUP"
 log ""
 log "To get the frontend URL:"
 log "  cd terraform && terraform output frontend_url"

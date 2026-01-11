@@ -42,6 +42,11 @@ output "frontend_url" {
   value       = "https://${azurerm_container_app.frontend.ingress[0].fqdn}"
 }
 
+output "frontend_app_name" {
+  description = "Frontend container app name"
+  value       = azurerm_container_app.frontend.name
+}
+
 output "container_registry_name" {
   description = "Container registry name"
   value       = azurerm_container_registry.frontend.name
