@@ -36,3 +36,18 @@ output "vmss_name" {
   description = "VM Scale Set name (to be created)"
   value       = local.vmss_name
 }
+
+output "frontend_url" {
+  description = "Frontend web UI URL"
+  value       = "https://${azurerm_container_app.frontend.ingress[0].fqdn}"
+}
+
+output "container_registry_name" {
+  description = "Container registry name"
+  value       = azurerm_container_registry.frontend.name
+}
+
+output "container_registry_login_server" {
+  description = "Container registry login server"
+  value       = azurerm_container_registry.frontend.login_server
+}
