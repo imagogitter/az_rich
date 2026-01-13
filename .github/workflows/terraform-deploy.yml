@@ -1,0 +1,257 @@
+name: Terraform Deployment
+
+# =============================================================================
+# This workflow automates Terraform deployment for the az_rich infrastructure
+# 
+# Required Secrets:
+# - AZURE_CLIENT_ID: Service Principal Application (Client) ID
+# - AZURE_CLIENT_SECRET: Service Principal Client Secret
+# - AZURE_TENANT_ID: Azure AD Tenant ID
+# - AZURE_SUBSCRIPTION_ID: Azure Subscription ID
+#
+# Environment Protection:
+# - The 'production' environment should be configured in GitHub with manual
+#   approval required for terraform apply operations
+# =============================================================================
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  TERRAFORM_VERSION: '1.5.0'
+  WORKING_DIRECTORY: terraform
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Azure Login with Service Principal
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+            }
+
+      - name: Terraform Init
+        id: init
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          set -e
+          echo "::group::Terraform Init"
+          terraform init -input=false
+          echo "::endgroup::"
+        continue-on-error: false
+
+      - name: Check Init Status
+        if: failure() && steps.init.outcome == 'failure'
+        run: |
+          echo "::error::Terraform initialization failed. Please check backend configuration and credentials."
+          exit 1
+
+      - name: Terraform Validate
+        id: validate
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          set -e
+          echo "::group::Terraform Validate"
+          terraform validate -no-color
+          echo "::endgroup::"
+        continue-on-error: false
+
+      - name: Check Validate Status
+        if: failure() && steps.validate.outcome == 'failure'
+        run: |
+          echo "::error::Terraform validation failed. Please check your configuration files for syntax errors."
+          exit 1
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          set -e
+          echo "::group::Terraform Plan"
+          terraform plan -no-color -input=false -out=tfplan
+          echo "::endgroup::"
+        continue-on-error: true
+
+      - name: Check Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: |
+          echo "::error::Terraform plan failed. Please review the errors above."
+          exit 1
+
+      - name: Save Terraform Plan
+        if: github.event_name == 'push' && steps.plan.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ env.WORKING_DIRECTORY }}/tfplan
+          retention-days: 5
+
+      - name: Terraform Show Plan
+        if: steps.plan.outcome == 'success'
+        id: show
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          terraform show -no-color tfplan > plan_output.txt
+          cat plan_output.txt
+
+      - name: Comment PR with Plan
+        if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        env:
+          PLAN: "${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const planOutput = fs.readFileSync('${{ env.WORKING_DIRECTORY }}/plan_output.txt', 'utf8');
+            const truncatedPlan = planOutput.length > 60000 ? planOutput.substring(0, 60000) + '\n\n... (truncated)' : planOutput;
+            
+            const output = `#### Terraform Initialization ⚙️ \`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖 \`${{ steps.validate.outcome }}\`
+            #### Terraform Plan 📖 \`${{ steps.plan.outcome }}\`
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`terraform
+            ${truncatedPlan}
+            \`\`\`
+            
+            </details>
+            
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://portal.azure.com
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Azure Login with Service Principal
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+            }
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ env.WORKING_DIRECTORY }}
+
+      - name: Terraform Init
+        id: init
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          set -e
+          echo "::group::Terraform Init"
+          terraform init -input=false
+          echo "::endgroup::"
+        continue-on-error: false
+
+      - name: Check Init Status
+        if: failure() && steps.init.outcome == 'failure'
+        run: |
+          echo "::error::Terraform initialization failed during apply phase."
+          exit 1
+
+      - name: Terraform Apply
+        id: apply
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          set -e
+          echo "::group::Terraform Apply"
+          terraform apply -auto-approve -input=false tfplan
+          echo "::endgroup::"
+        continue-on-error: false
+
+      - name: Check Apply Status
+        if: failure() && steps.apply.outcome == 'failure'
+        run: |
+          echo "::error::Terraform apply failed. Infrastructure may be in an inconsistent state. Please review logs immediately."
+          exit 1
+
+      - name: Terraform Output
+        if: success()
+        id: output
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "::group::Terraform Outputs"
+          terraform output -json > terraform-outputs.json
+          terraform output
+          echo "::endgroup::"
+
+      - name: Upload Terraform Outputs
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs
+          path: ${{ env.WORKING_DIRECTORY }}/terraform-outputs.json
+          retention-days: 30
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "::notice::Terraform deployment completed successfully! Infrastructure is now up to date."
+          echo "### ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The Terraform configuration has been successfully applied." >> $GITHUB_STEP_SUMMARY
+          echo "Check the Azure Portal to verify resource deployment." >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "::error::Terraform deployment failed. Please check the logs above for details."
+          echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The Terraform apply operation failed. Please review the error logs and take corrective action." >> $GITHUB_STEP_SUMMARY
+          exit 1
