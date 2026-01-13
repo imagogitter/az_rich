@@ -59,7 +59,8 @@ Navigate to the URL and create an admin account on first visit.
 - ✅ Health check endpoints with liveness/readiness probes
 - ✅ Azure Key Vault secrets management
 - ✅ Terraform & Bicep IaC
-- ✅ GitHub Actions CI/CD
+- ✅ GitHub Actions CI/CD with automated Terraform deployment
+- ✅ Manual approval workflow for production changes
 - ✅ Auto-scaling 0-20 GPU instances
 - ✅ 40% cache hit rate
 - ✅ <30s spot preemption failover
@@ -76,6 +77,7 @@ Navigate to the URL and create an admin account on first visit.
 
 - [Frontend Deployment Guide](docs/frontend-deployment.md)
 - [Frontend Usage Guide](docs/frontend-usage.md)
+- [Terraform Deployment Workflow](.github/workflows/TERRAFORM_DEPLOYMENT.md)
 - Deployment Guide
 - API Usage
 - Architecture
