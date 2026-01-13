@@ -10,6 +10,7 @@ The `terraform-deploy.yml` workflow automates the deployment of Azure infrastruc
 - Manual approval requirement for applying changes to production
 - Comprehensive error handling and status reporting
 - Secure authentication using Azure Service Principal
+- Security-patched GitHub Actions (artifact actions use v4.1.3+)
 
 ## Workflow Triggers
 
