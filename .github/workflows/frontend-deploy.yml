@@ -22,6 +22,11 @@ on:
 env:
   TERRAFORM_VERSION: '1.5.0'
 
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
 jobs:
   deploy-frontend:
     name: Deploy Frontend to Azure
