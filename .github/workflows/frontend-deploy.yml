@@ -161,7 +161,7 @@ jobs:
           else
             echo "API Base URL: Not available"
           fi
-          echo "API Key: ${OPENAI_API_KEY:0:8}... (masked)"
+          echo "API Key: ****... (masked)"
           
           cd ..
           
