@@ -4,7 +4,22 @@ GPU-based AI inference reselling platform with 200-300% margins using Azure spot
 
 ## Quick Start
 
-**🚀 [Frontend Quick Start Guide](QUICKSTART-FRONTEND.md)** - Get up and running in 4 steps!
+### 🚀 One-Command Setup (Recommended)
+
+```bash
+./setup-frontend-complete.sh
+```
+
+This automated script handles everything: infrastructure, frontend, setup, and security!
+
+### 📚 Documentation & Commands
+
+- **[Command Reference](FRONTEND-COMMANDS.md)** - All commands for setup, launch, and testing
+- **[LLM Connection Guide](docs/LLM-CONNECTION-GUIDE.md)** - Complete API integration guide
+- **[Quick Start Guide](QUICKSTART-FRONTEND.md)** - Step-by-step manual setup
+- **[Frontend Usage](docs/frontend-usage.md)** - How to use the web interface
+
+### 🔧 Manual Setup (Alternative)
 
 ```bash
 # Step 1: Deploy infrastructure
@@ -21,7 +36,11 @@ cd terraform && terraform output frontend_url
 cd .. && ./setup-frontend-auth.sh
 ```
 
-For detailed instructions, see the [Frontend Deployment Guide](docs/frontend-deployment.md).
+### 🚀 Launch & Test
+
+```bash
+./launch-frontend.sh --all    # Check status, test, and open in browser
+```
 
 ## Frontend Web UI
 
@@ -56,6 +75,8 @@ Navigate to the URL and create an admin account on first visit.
 ## Features
 
 - ✅ Web UI with authentication and full model control
+- ✅ OpenAI-compatible API for easy integration
+- ✅ Multiple LLM models (Mixtral, Llama-3, Phi-3)
 - ✅ Health check endpoints with liveness/readiness probes
 - ✅ Azure Key Vault secrets management
 - ✅ Terraform & Bicep IaC
@@ -63,6 +84,38 @@ Navigate to the URL and create an admin account on first visit.
 - ✅ Auto-scaling 0-20 GPU instances
 - ✅ 40% cache hit rate
 - ✅ <30s spot preemption failover
+
+## LLM API Integration
+
+The platform provides an **OpenAI-compatible API** for seamless integration:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="your-api-key",
+    base_url="https://your-app.azurewebsites.net/api/v1"
+)
+
+response = client.chat.completions.create(
+    model="mixtral-8x7b",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+**Available Models:**
+- `mixtral-8x7b` - 32K context, fast (Mistral AI)
+- `llama-3-70b` - 8K context, high quality (Meta)
+- `phi-3-mini` - 4K context, lightweight (Microsoft)
+
+**Get Connection Details:**
+```bash
+./setup-frontend-complete.sh  # Saves to connection-details.txt
+# OR
+cat connection-details.txt    # View saved connection details
+```
+
+📖 **[Complete LLM Connection Guide](docs/LLM-CONNECTION-GUIDE.md)** - API docs, examples, integration patterns
 
 ## Costs
 
