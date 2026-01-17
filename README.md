@@ -127,9 +127,83 @@ cat connection-details.txt    # View saved connection details
 
 ## Documentation
 
-- [Frontend Deployment Guide](docs/frontend-deployment.md)
-- [Frontend Usage Guide](docs/frontend-usage.md)
-- Deployment Guide
-- API Usage
-- Architecture
-- Runbook
+### 📖 Getting Started
+
+- **[Setup Checklist](SETUP-CHECKLIST.md)** - Complete setup validation checklist
+- **[Command Reference](FRONTEND-COMMANDS.md)** - All commands for setup, launch, and testing
+- **[Quick Start Guide](QUICKSTART-FRONTEND.md)** - Step-by-step manual setup
+
+### 🔌 LLM Integration
+
+- **[LLM Connection Guide](docs/LLM-CONNECTION-GUIDE.md)** - Complete API reference and integration guide
+- **[Usage Examples](examples/README.md)** - Python and cURL integration examples
+
+### 🎨 Frontend
+
+- **[Frontend Deployment](docs/frontend-deployment.md)** - Detailed deployment guide
+- **[Frontend Usage](docs/frontend-usage.md)** - How to use the web interface
+- **[Implementation Details](docs/FRONTEND-IMPLEMENTATION.md)** - Technical architecture
+
+### 🛠️ Scripts
+
+- `setup-frontend-complete.sh` - Automated complete setup (recommended)
+- `launch-frontend.sh` - Launch, test, and open frontend
+- `deploy-frontend.sh` - Build and deploy frontend container
+- `setup-frontend-auth.sh` - Secure frontend (disable signup)
+- `deploy.sh` - Deploy backend Functions
+
+### 📝 Generated Files
+
+- `connection-details.txt` - Auto-generated connection information (after setup)
+- `.env` - Environment variables (create manually)
+
+## Example Usage
+
+### Python with OpenAI SDK
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="your-api-key",
+    base_url="https://your-app.azurewebsites.net/api/v1"
+)
+
+response = client.chat.completions.create(
+    model="mixtral-8x7b",
+    messages=[{"role": "user", "content": "Explain AI"}],
+    temperature=0.7
+)
+
+print(response.choices[0].message.content)
+```
+
+### cURL
+
+```bash
+curl -X POST https://your-app.azurewebsites.net/api/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d '{
+    "model": "mixtral-8x7b",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+See `examples/` directory for more integration patterns.
+
+## Support & Resources
+
+- 📖 Documentation in `docs/` directory
+- 💻 Code examples in `examples/` directory
+- 🔧 Setup scripts in root directory
+- 🌐 [Azure Documentation](https://learn.microsoft.com/azure/)
+- 🤖 [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues or pull requests.
+
+## License
+
+This project is provided as-is for educational and commercial use.
