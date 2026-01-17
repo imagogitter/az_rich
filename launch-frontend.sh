@@ -110,7 +110,11 @@ test_connectivity() {
     
     # Test frontend
     log "Testing frontend URL..."
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL" -L --max-time 30 || echo "000")
+    
+    # Make single request and capture both status and content
+    HTTP_RESPONSE=$(curl -s -w "\n%{http_code}" "$FRONTEND_URL" -L --max-time 30 2>/dev/null || echo -e "\n000")
+    HTTP_CODE=$(echo "$HTTP_RESPONSE" | tail -n1)
+    HTTP_BODY=$(echo "$HTTP_RESPONSE" | head -n-1)
     
     if [ "$HTTP_CODE" = "200" ]; then
         success "✓ Frontend is accessible (HTTP $HTTP_CODE)"
@@ -135,13 +139,14 @@ test_connectivity() {
             log "Testing backend API..."
             HEALTH_URL="https://${BACKEND_URL}/api/v1/health"
             
-            # Check HTTP status code first
-            HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" --max-time 10 || echo "000")
+            # Make single request and check both status and content
+            HEALTH_RESPONSE=$(curl -s -w "\n%{http_code}" "$HEALTH_URL" --max-time 10 2>/dev/null || echo -e "\n000")
+            HEALTH_CODE=$(echo "$HEALTH_RESPONSE" | tail -n1)
+            HEALTH_BODY=$(echo "$HEALTH_RESPONSE" | head -n-1)
             
             if [ "$HEALTH_CODE" = "200" ]; then
-                # Now check content
-                BACKEND_STATUS=$(curl -s "$HEALTH_URL" --max-time 10 || echo "")
-                if echo "$BACKEND_STATUS" | grep -q "ok\|healthy\|live"; then
+                # Check content
+                if echo "$HEALTH_BODY" | grep -q "ok\|healthy\|live"; then
                     success "✓ Backend API is responding"
                 else
                     warn "⚠ Backend API responded but with unexpected content"

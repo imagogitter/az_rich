@@ -652,7 +652,7 @@ az containerapp logs show --name <container-app> --resource-group <rg> --tail 10
 
 ### Current Limits
 
-> **Note**: These limits are current as of this documentation. They may be adjusted based on usage patterns and Azure capacity. Refer to the Azure Portal for the most up-to-date limits and quotas.
+> **Note**: These limits are current as of the last update date at the end of this document. They may be adjusted based on usage patterns and Azure capacity. Refer to the Azure Portal for the most up-to-date limits and quotas.
 
 - **Requests**: No hard limit (Azure Functions scale dynamically)
 - **Tokens**: Up to 4096 per request

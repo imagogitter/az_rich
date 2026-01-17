@@ -48,9 +48,12 @@ echo ""
 echo "Base URL: $BASE_URL"
 echo "API Key:  ${API_KEY:0:20}..."
 echo ""
+echo "Note: The /health endpoint is public (no authentication required)."
+echo "      All other endpoints require authentication with API key."
+echo ""
 
-# Example 1: Health Check
-echo_section "1. Health Check"
+# Example 1: Health Check (Public endpoint)
+echo_section "1. Health Check (No Authentication Required)"
 
 echo_command "curl -s \"$BASE_URL/health\""
 curl -s "$BASE_URL/health" | jq '.' || echo "Error: Could not connect to backend"
