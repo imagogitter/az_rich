@@ -156,7 +156,7 @@ def main():
     
     try:
         # Check configuration
-        if API_KEY == "your-api-key-here":
+        if not API_KEY or API_KEY.strip() == '' or API_KEY == "your-api-key-here":
             print("ERROR: Please set your API key!")
             print("Set environment variables:")
             print("  export OPENAI_API_KEY='your-key'")

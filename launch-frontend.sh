@@ -135,12 +135,19 @@ test_connectivity() {
             log "Testing backend API..."
             HEALTH_URL="https://${BACKEND_URL}/api/v1/health"
             
-            BACKEND_STATUS=$(curl -s "$HEALTH_URL" --max-time 10 || echo "")
+            # Check HTTP status code first
+            HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" --max-time 10 || echo "000")
             
-            if echo "$BACKEND_STATUS" | grep -q "ok\|healthy\|live"; then
-                success "✓ Backend API is responding"
+            if [ "$HEALTH_CODE" = "200" ]; then
+                # Now check content
+                BACKEND_STATUS=$(curl -s "$HEALTH_URL" --max-time 10 || echo "")
+                if echo "$BACKEND_STATUS" | grep -q "ok\|healthy\|live"; then
+                    success "✓ Backend API is responding"
+                else
+                    warn "⚠ Backend API responded but with unexpected content"
+                fi
             else
-                warn "⚠ Backend API is not responding or not deployed"
+                warn "⚠ Backend API is not responding (HTTP $HEALTH_CODE) or not deployed"
                 log "Deploy backend with: ./deploy.sh"
             fi
         else

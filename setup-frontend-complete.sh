@@ -395,24 +395,27 @@ main() {
     check_prerequisites
     
     # Step 2: Deploy infrastructure
-    log "Step 1/5: Infrastructure Deployment"
+    log "Step 1/6: Infrastructure Deployment"
     deploy_infrastructure
     
     # Step 3: Deploy frontend
-    log "Step 2/5: Frontend Deployment"
+    log "Step 2/6: Frontend Deployment"
     deploy_frontend
     
     # Step 4: Show connection details
-    log "Step 3/5: Connection Details"
+    log "Step 3/6: Connection Details"
     show_connection_details
     
     # Step 5: Admin setup
-    log "Step 4/5: Admin Account Setup"
+    log "Step 4/6: Admin Account Setup"
     setup_admin_account
     
     # Step 6: Secure frontend
-    log "Step 5/5: Security Setup"
+    log "Step 5/6: Security Setup"
     secure_frontend
+    
+    # Step 7: Test
+    log "Step 6/6: Connectivity Testing"
     
     # Test
     test_connection

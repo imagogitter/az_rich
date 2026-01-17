@@ -52,54 +52,53 @@ echo ""
 # Example 1: Health Check
 echo_section "1. Health Check"
 
-CMD="curl -s \"$BASE_URL/health\""
-echo_command "$CMD"
-
-eval "$CMD" | jq '.' || echo "Error: Could not connect to backend"
+echo_command "curl -s \"$BASE_URL/health\""
+curl -s "$BASE_URL/health" | jq '.' || echo "Error: Could not connect to backend"
 
 # Example 2: List Models
 echo_section "2. List Available Models"
 
-CMD="curl -s \"$BASE_URL/models\" \
-  -H \"Authorization: Bearer $API_KEY\""
-echo_command "$CMD"
-
-eval "$CMD" | jq '.'
+echo_command "curl -s \"$BASE_URL/models\" -H \"Authorization: Bearer $API_KEY\""
+curl -s "$BASE_URL/models" -H "Authorization: Bearer $API_KEY" | jq '.'
 
 # Example 3: Simple Chat Completion
 echo_section "3. Simple Chat Completion"
 
-CMD="curl -s -X POST \"$BASE_URL/chat/completions\" \\
-  -H \"Content-Type: application/json\" \\
-  -H \"Authorization: Bearer $API_KEY\" \\
-  -d '{
-    \"model\": \"mixtral-8x7b\",
-    \"messages\": [{\"role\": \"user\", \"content\": \"What is 2+2?\"}],
-    \"temperature\": 0.7,
-    \"max_tokens\": 50
-  }'"
-echo_command "$CMD"
+echo_command "curl -s -X POST \"$BASE_URL/chat/completions\" \
+  -H \"Content-Type: application/json\" \
+  -H \"Authorization: Bearer $API_KEY\" \
+  -d '{...}'"
 
-eval "$CMD" | jq '.choices[0].message.content'
+curl -s -X POST "$BASE_URL/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_KEY" \
+  -d '{
+    "model": "mixtral-8x7b",
+    "messages": [{"role": "user", "content": "What is 2+2?"}],
+    "temperature": 0.7,
+    "max_tokens": 50
+  }' | jq '.choices[0].message.content'
 
 # Example 4: Chat with System Prompt
 echo_section "4. Chat with System Prompt"
 
-CMD="curl -s -X POST \"$BASE_URL/chat/completions\" \\
-  -H \"Content-Type: application/json\" \\
-  -H \"Authorization: Bearer $API_KEY\" \\
-  -d '{
-    \"model\": \"llama-3-70b\",
-    \"messages\": [
-      {\"role\": \"system\", \"content\": \"You are a helpful Python expert.\"},
-      {\"role\": \"user\", \"content\": \"Explain list comprehensions in one sentence.\"}
-    ],
-    \"temperature\": 0.5,
-    \"max_tokens\": 100
-  }'"
-echo_command "$CMD"
+echo_command "curl -s -X POST \"$BASE_URL/chat/completions\" \
+  -H \"Content-Type: application/json\" \
+  -H \"Authorization: Bearer $API_KEY\" \
+  -d '{...}'"
 
-eval "$CMD" | jq '.choices[0].message.content'
+curl -s -X POST "$BASE_URL/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_KEY" \
+  -d '{
+    "model": "llama-3-70b",
+    "messages": [
+      {"role": "system", "content": "You are a helpful Python expert."},
+      {"role": "user", "content": "Explain list comprehensions in one sentence."}
+    ],
+    "temperature": 0.5,
+    "max_tokens": 100
+  }' | jq '.choices[0].message.content'
 
 # Example 5: Different Temperature Settings
 echo_section "5. Temperature Comparison"
@@ -152,17 +151,20 @@ done
 # Example 7: Full Response Details
 echo_section "7. Full Response with Usage Stats"
 
-CMD="curl -s -X POST \"$BASE_URL/chat/completions\" \\
-  -H \"Content-Type: application/json\" \\
-  -H \"Authorization: Bearer $API_KEY\" \\
-  -d '{
-    \"model\": \"mixtral-8x7b\",
-    \"messages\": [{\"role\": \"user\", \"content\": \"Hello!\"}],
-    \"max_tokens\": 50
-  }'"
-echo_command "$CMD"
+echo_command "curl -s -X POST \"$BASE_URL/chat/completions\" \
+  -H \"Content-Type: application/json\" \
+  -H \"Authorization: Bearer $API_KEY\" \
+  -d '{...}'"
 
-RESPONSE=$(eval "$CMD")
+RESPONSE=$(curl -s -X POST "$BASE_URL/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_KEY" \
+  -d '{
+    "model": "mixtral-8x7b",
+    "messages": [{"role": "user", "content": "Hello!"}],
+    "max_tokens": 50
+  }')
+
 echo "$RESPONSE" | jq '{
   response: .choices[0].message.content,
   model: .model,
