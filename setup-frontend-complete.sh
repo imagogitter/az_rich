@@ -130,9 +130,9 @@ display_connection_details() {
   echo "🔐 LLM API Configuration:"
   echo "----------------------------------------"
   if [ -n "$FUNCTION_APP_NAME" ]; then
-    echo "OPENAI_API_BASE:     https://${FUNCTION_APP_NAME}.azurewebsites.net/api/v1"
+    echo "OPENAI_API_BASE_URL: https://${FUNCTION_APP_NAME}.azurewebsites.net/api/v1"
   else
-    echo "OPENAI_API_BASE:     Not available"
+    echo "OPENAI_API_BASE_URL: Not available"
   fi
   echo "OPENAI_API_KEY:      ${OPENAI_API_KEY:-Not available (check Key Vault)}"
   echo ""
@@ -164,7 +164,7 @@ Frontend URL: ${FRONTEND_URL:-Not available}
 Resource Group: ${RESOURCE_GROUP:-Not available}
 Frontend App Name: ${FRONTEND_APP_NAME:-Not available}
 Function App Name: ${FUNCTION_APP_NAME:-Not available}
-OPENAI_API_BASE: https://${FUNCTION_APP_NAME}.azurewebsites.net/api/v1
+OPENAI_API_BASE_URL: $([ -n "$FUNCTION_APP_NAME" ] && echo "https://${FUNCTION_APP_NAME}.azurewebsites.net/api/v1" || echo "Not available")
 OPENAI_API_KEY: ${OPENAI_API_KEY:-Not available}
 EOF
     log "✅ Connection details saved to output/connection-details.txt"

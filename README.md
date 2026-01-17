@@ -6,6 +6,24 @@ GPU-based AI inference reselling platform with 200-300% margins using Azure spot
 
 **🚀 [Frontend Quick Start Guide](QUICKSTART-FRONTEND.md)** - Get up and running in 4 steps!
 
+### Option 1: Automated Deployment (GitHub Actions)
+
+1. Configure repository secrets:
+   - `AZURE_CREDENTIALS` - Azure service principal credentials
+   
+2. Push to `main` branch or manually trigger the "Frontend Deployment" workflow
+
+3. Download artifacts for connection details and LLM API configuration
+
+### Option 2: Local One-Command Deployment
+
+```bash
+# Complete deployment (infrastructure + frontend + connection details)
+./setup-frontend-complete.sh
+```
+
+### Option 3: Manual Step-by-Step
+
 ```bash
 # Step 1: Deploy infrastructure
 cd terraform && terraform init && terraform apply
