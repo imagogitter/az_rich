@@ -29,6 +29,9 @@ Configure these secrets in your GitHub repository (Settings → Secrets and vari
 Azure service principal credentials in JSON format. To create:
 
 ```bash
+# Find your subscription ID
+az account show --query id -o tsv
+
 # Replace with your subscription ID
 SUBSCRIPTION_ID="your-subscription-id"
 
