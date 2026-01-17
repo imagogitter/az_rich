@@ -35,6 +35,10 @@ jobs:
       - name: Validate required secrets
         run: |
           echo "Validating required secrets configuration..."
+          if [ -z "$AZURE_CREDENTIALS" ]; then
+            echo "::error::AZURE_CREDENTIALS secret is not set. Please configure it in repository settings."
+            exit 1
+          fi
           echo "✅ AZURE_CREDENTIALS secret is configured"
         env:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
@@ -143,14 +147,22 @@ jobs:
           echo "resource_group=$RESOURCE_GROUP" >> $GITHUB_OUTPUT
           echo "frontend_app_name=$FRONTEND_APP_NAME" >> $GITHUB_OUTPUT
           echo "function_app_name=$FUNCTION_APP_NAME" >> $GITHUB_OUTPUT
-          echo "openai_api_base=https://${FUNCTION_APP_NAME}.azurewebsites.net/api/v1" >> $GITHUB_OUTPUT
+          if [ -n "$FUNCTION_APP_NAME" ]; then
+            echo "openai_api_base=https://${FUNCTION_APP_NAME}.azurewebsites.net/api/v1" >> $GITHUB_OUTPUT
+          else
+            echo "openai_api_base=" >> $GITHUB_OUTPUT
+          fi
           
           # Display in logs (mask sensitive data)
           echo "Frontend URL: $FRONTEND_URL"
           echo "Resource Group: $RESOURCE_GROUP"
           echo "Frontend App: $FRONTEND_APP_NAME"
           echo "Function App: $FUNCTION_APP_NAME"
-          echo "API Base URL: https://${FUNCTION_APP_NAME}.azurewebsites.net/api/v1"
+          if [ -n "$FUNCTION_APP_NAME" ]; then
+            echo "API Base URL: https://${FUNCTION_APP_NAME}.azurewebsites.net/api/v1"
+          else
+            echo "API Base URL: Not available"
+          fi
           echo "API Key: ${OPENAI_API_KEY:0:8}... (masked)"
           
           cd ..
