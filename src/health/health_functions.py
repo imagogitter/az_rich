@@ -25,7 +25,9 @@ async def check_keyvault() -> Dict[str, Any]:
             return {"status": "skip", "message": "KEY_VAULT_NAME not set"}
 
         credential = DefaultAzureCredential()
-        client = SecretClient(vault_url=f"https://{kv_name}.vault.azure.net", credential=credential)
+        client = SecretClient(
+            vault_url=f"https://{kv_name}.vault.azure.net", credential=credential
+        )
         # Try to list secrets (lightweight operation)
         list(client.list_properties_of_secrets(max_page_size=1))
         return {"status": "healthy", "latency_ms": 0}
@@ -48,7 +50,8 @@ async def check_cosmos() -> Dict[str, Any]:
         start_time = time.time()
         credential = DefaultAzureCredential()
         client = CosmosClient(
-            url=f"https://{cosmos_account}.documents.azure.com:443/", credential=credential
+            url=f"https://{cosmos_account}.documents.azure.com:443/",
+            credential=credential,
         )
 
         # Lightweight check: list databases (requires appropriate permissions)
@@ -71,11 +74,17 @@ async def check_inference_backend() -> Dict[str, Any]:
         backend_url = f"http://{vmss_name}.internal:8080/health"
 
         start_time = time.time()
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=5)
+        ) as session:
             async with session.get(backend_url) as response:
                 if response.status == 200:
                     latency_ms = int((time.time() - start_time) * 1000)
-                    return {"status": "healthy", "instances": 1, "latency_ms": latency_ms}
+                    return {
+                        "status": "healthy",
+                        "instances": 1,
+                        "latency_ms": latency_ms,
+                    }
                 else:
                     return {"status": "degraded", "error": f"HTTP {response.status}"}
 
@@ -125,16 +134,22 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             response["checks"] = {
                 "keyvault": kv_result,
                 "cosmos": cosmos_result,
-                "inference_backend": backend_result
+                "inference_backend": backend_result,
             }
 
             # Determine overall status
-            unhealthy = [k for k, v in response["checks"].items() if v.get("status") == "unhealthy"]
+            unhealthy = [
+                k
+                for k, v in response["checks"].items()
+                if v.get("status") == "unhealthy"
+            ]
 
             if unhealthy:
                 response["status"] = "unhealthy"
                 status_code = 503
-            elif any(v.get("status") == "degraded" for v in response["checks"].values()):
+            elif any(
+                v.get("status") == "degraded" for v in response["checks"].values()
+            ):
                 response["status"] = "degraded"
                 status_code = 200
 
@@ -153,7 +168,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
-        "X-Health-Check": check_type
+        "X-Health-Check": check_type,
     }
     return func.HttpResponse(
         json.dumps(response, indent=2),
