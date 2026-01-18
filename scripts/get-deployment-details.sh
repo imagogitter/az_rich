@@ -213,12 +213,14 @@ display_deployment_details() {
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "Key Vault Name:         ${KEY_VAULT_NAME:-Not Available}"
   if [ -n "$FRONTEND_API_KEY" ]; then
-    echo "Frontend API Key:       ${FRONTEND_API_KEY:0:20}... (stored in Key Vault)"
+    # Mask the API key in output (show only first 8 chars)
+    echo "Frontend API Key:       ${FRONTEND_API_KEY:0:8}... (stored in Key Vault)"
   else
     echo "Frontend API Key:       Not Available (check Key Vault: frontend-openai-api-key)"
   fi
   if [ -n "$INFERENCE_API_KEY" ]; then
-    echo "Inference API Key:      ${INFERENCE_API_KEY:0:20}... (stored in Key Vault)"
+    # Mask the API key in output (show only first 8 chars)
+    echo "Inference API Key:      ${INFERENCE_API_KEY:0:8}... (stored in Key Vault)"
   else
     echo "Inference API Key:      Not Available (check Key Vault: inference-api-key)"
   fi
