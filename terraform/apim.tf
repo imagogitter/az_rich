@@ -27,9 +27,9 @@ resource "azurerm_api_management_api" "chat_completions" {
 
   subscription_required = false
 
-  service_url = "https://${azurerm_function_app.main.default_hostname}/api"
+  service_url = "https://${azurerm_linux_function_app.main.default_hostname}/api"
 
-  import_openapi_specification {
+  import {
     content_format = "openapi+json"
     content_value  = file("${path.module}/../openapi.json")
   }
@@ -83,9 +83,9 @@ resource "azurerm_api_management_api" "models" {
 
   subscription_required = false
 
-  service_url = "https://${azurerm_function_app.main.default_hostname}/api"
+  service_url = "https://${azurerm_linux_function_app.main.default_hostname}/api"
 
-  import_openapi_specification {
+  import {
     content_format = "openapi+json"
     content_value  = file("${path.module}/../openapi.json")
   }
@@ -102,9 +102,9 @@ resource "azurerm_api_management_api" "health" {
 
   subscription_required = false
 
-  service_url = "https://${azurerm_function_app.main.default_hostname}/api"
+  service_url = "https://${azurerm_linux_function_app.main.default_hostname}/api"
 
-  import_openapi_specification {
+  import {
     content_format = "openapi+json"
     content_value  = file("${path.module}/../openapi.json")
   }

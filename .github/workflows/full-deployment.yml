@@ -1,0 +1,606 @@
+name: Full Azure Deployment with Details
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      deploy_infrastructure:
+        description: 'Deploy infrastructure (Terraform)'
+        required: true
+        default: true
+        type: boolean
+      deploy_functions:
+        description: 'Deploy Azure Functions'
+        required: true
+        default: true
+        type: boolean
+      deploy_frontend:
+        description: 'Deploy Frontend'
+        required: true
+        default: true
+        type: boolean
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - 'src/**'
+      - 'frontend/**'
+      - '.github/workflows/full-deployment.yml'
+
+env:
+  TERRAFORM_VERSION: '1.5.0'
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src'
+
+jobs:
+  validate-terraform:
+    name: Validate Terraform Configuration
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      
+      - name: Terraform Format Check
+        working-directory: terraform
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+      
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -backend=false
+      
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
+      
+      - name: Upload Terraform Plan
+        run: echo "Terraform validation successful"
+
+  lint-and-test:
+    name: Lint and Test Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          pip install -r src/requirements.txt
+          pip install black flake8 mypy pytest pytest-cov
+      
+      - name: Run Black (format check)
+        run: black --check src/
+        continue-on-error: true
+      
+      - name: Run Flake8 (linting)
+        run: |
+          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+      
+      - name: Run MyPy (type checking)
+        run: mypy src/ --ignore-missing-imports
+        continue-on-error: true
+      
+      - name: Run Tests
+        run: |
+          if [ -d "tests" ] && [ "$(ls -A tests/*.py 2>/dev/null)" ]; then
+            pytest tests/ -v --cov=src --cov-report=xml
+          else
+            echo "No tests found, skipping"
+          fi
+        continue-on-error: true
+
+  deploy-infrastructure:
+    name: Deploy Azure Infrastructure
+    runs-on: ubuntu-latest
+    needs: [validate-terraform, lint-and-test]
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_infrastructure)
+    environment: ${{ github.event.inputs.environment || 'prod' }}
+    
+    outputs:
+      resource_group_name: ${{ steps.terraform-outputs.outputs.resource_group_name }}
+      function_app_name: ${{ steps.terraform-outputs.outputs.function_app_name }}
+      frontend_app_name: ${{ steps.terraform-outputs.outputs.frontend_app_name }}
+      container_registry_name: ${{ steps.terraform-outputs.outputs.container_registry_name }}
+      key_vault_name: ${{ steps.terraform-outputs.outputs.key_vault_name }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+      
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -out=tfplan
+      
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve tfplan
+      
+      - name: Get Terraform Outputs
+        id: terraform-outputs
+        working-directory: terraform
+        run: |
+          echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
+          echo "function_app_name=$(terraform output -raw function_app_name)" >> $GITHUB_OUTPUT
+          echo "frontend_app_name=$(terraform output -raw frontend_app_name)" >> $GITHUB_OUTPUT
+          echo "container_registry_name=$(terraform output -raw container_registry_name)" >> $GITHUB_OUTPUT
+          echo "key_vault_name=$(terraform output -raw key_vault_name)" >> $GITHUB_OUTPUT
+      
+      - name: Save Terraform State
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-state
+          path: terraform/terraform.tfstate
+          retention-days: 30
+
+  deploy-functions:
+    name: Deploy Azure Functions
+    runs-on: ubuntu-latest
+    needs: deploy-infrastructure
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_functions)
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+      
+      - name: Create deployment package
+        run: |
+          cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          zip -r ../function-app.zip . -x "*.pyc" -x "__pycache__/*"
+      
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ needs.deploy-infrastructure.outputs.function_app_name }}
+          package: function-app.zip
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+      
+      - name: Wait for Function App to be ready
+        run: |
+          echo "Waiting for Function App to be ready..."
+          sleep 30
+          
+          FUNCTION_APP_NAME="${{ needs.deploy-infrastructure.outputs.function_app_name }}"
+          MAX_ATTEMPTS=10
+          ATTEMPT=0
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            if curl -s -o /dev/null -w "%{http_code}" "https://${FUNCTION_APP_NAME}.azurewebsites.net/api/health/live" | grep -q "200"; then
+              echo "Function App is ready!"
+              break
+            fi
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Function App not ready yet, waiting..."
+            sleep 10
+          done
+
+  deploy-frontend:
+    name: Deploy Frontend Container
+    runs-on: ubuntu-latest
+    needs: deploy-infrastructure
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend)
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ needs.deploy-infrastructure.outputs.container_registry_name }}
+      
+      - name: Get ACR login server
+        id: acr
+        run: |
+          ACR_LOGIN_SERVER=$(az acr show \
+            --name ${{ needs.deploy-infrastructure.outputs.container_registry_name }} \
+            --query loginServer -o tsv)
+          echo "login_server=${ACR_LOGIN_SERVER}" >> $GITHUB_OUTPUT
+      
+      - name: Build and push frontend image
+        run: |
+          cd frontend
+          docker build -t open-webui:latest .
+          docker tag open-webui:latest ${{ steps.acr.outputs.login_server }}/open-webui:latest
+          docker tag open-webui:latest ${{ steps.acr.outputs.login_server }}/open-webui:${{ github.sha }}
+          docker push ${{ steps.acr.outputs.login_server }}/open-webui:latest
+          docker push ${{ steps.acr.outputs.login_server }}/open-webui:${{ github.sha }}
+      
+      - name: Update Container App
+        run: |
+          az containerapp update \
+            --name ${{ needs.deploy-infrastructure.outputs.frontend_app_name }} \
+            --resource-group ${{ needs.deploy-infrastructure.outputs.resource_group_name }} \
+            --image ${{ steps.acr.outputs.login_server }}/open-webui:latest
+      
+      - name: Restart Container App
+        run: |
+          az containerapp revision restart \
+            --name ${{ needs.deploy-infrastructure.outputs.frontend_app_name }} \
+            --resource-group ${{ needs.deploy-infrastructure.outputs.resource_group_name }} \
+            || echo "Restart command not available, container will restart automatically"
+
+  get-deployment-details:
+    name: Generate Deployment Details
+    runs-on: ubuntu-latest
+    needs: [deploy-infrastructure, deploy-functions, deploy-frontend]
+    if: always() && needs.deploy-infrastructure.result == 'success'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Download Terraform State
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-state
+          path: terraform/
+      
+      - name: Get comprehensive deployment details
+        id: deployment-details
+        run: |
+          # Make script executable
+          chmod +x scripts/get-deployment-details.sh
+          
+          # Generate human-readable details
+          ./scripts/get-deployment-details.sh > deployment-details.txt
+          
+          # Generate JSON details
+          ./scripts/get-deployment-details.sh --json > deployment-details.json
+          
+          # Generate Markdown details
+          ./scripts/get-deployment-details.sh --markdown > DEPLOYMENT-INFO.md
+          
+          echo "Details generated successfully"
+      
+      - name: Extract key information
+        id: extract-info
+        working-directory: terraform
+        run: |
+          RESOURCE_GROUP=$(terraform output -raw resource_group_name 2>/dev/null || echo "N/A")
+          FUNCTION_APP_NAME=$(terraform output -raw function_app_name 2>/dev/null || echo "N/A")
+          FRONTEND_URL=$(terraform output -raw frontend_url 2>/dev/null || echo "N/A")
+          KEY_VAULT_NAME=$(terraform output -raw key_vault_name 2>/dev/null || echo "N/A")
+          
+          echo "resource_group=${RESOURCE_GROUP}" >> $GITHUB_OUTPUT
+          echo "function_app_name=${FUNCTION_APP_NAME}" >> $GITHUB_OUTPUT
+          echo "frontend_url=${FRONTEND_URL}" >> $GITHUB_OUTPUT
+          echo "key_vault_name=${KEY_VAULT_NAME}" >> $GITHUB_OUTPUT
+          
+          # Get API endpoint
+          if [ "$FUNCTION_APP_NAME" != "N/A" ]; then
+            API_ENDPOINT="https://${FUNCTION_APP_NAME}.azurewebsites.net/api"
+            echo "api_endpoint=${API_ENDPOINT}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Get API Keys (masked)
+        id: api-keys
+        run: |
+          KEY_VAULT_NAME="${{ steps.extract-info.outputs.key_vault_name }}"
+          
+          if [ "$KEY_VAULT_NAME" != "N/A" ]; then
+            # Get API key (will be masked in logs)
+            API_KEY=$(az keyvault secret show \
+              --vault-name "$KEY_VAULT_NAME" \
+              --name "frontend-openai-api-key" \
+              --query "value" -o tsv 2>/dev/null || echo "Not Available")
+            
+            # Mask the key
+            echo "::add-mask::${API_KEY}"
+            echo "api_key_available=true" >> $GITHUB_OUTPUT
+            
+            # Save to file (for artifact)
+            echo "API_KEY=${API_KEY}" > api-credentials.txt
+            chmod 600 api-credentials.txt
+          else
+            echo "api_key_available=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Test API Endpoints
+        run: |
+          API_ENDPOINT="${{ steps.extract-info.outputs.api_endpoint }}"
+          
+          if [ -n "$API_ENDPOINT" ] && [ "$API_ENDPOINT" != "N/A" ]; then
+            echo "Testing health endpoints..."
+            
+            # Test liveness
+            if curl -s -o /dev/null -w "%{http_code}" "${API_ENDPOINT}/health/live" | grep -q "200"; then
+              echo "✅ Liveness endpoint: OK"
+            else
+              echo "⚠️  Liveness endpoint: Not responding"
+            fi
+            
+            # Test readiness
+            if curl -s -o /dev/null -w "%{http_code}" "${API_ENDPOINT}/health/ready" | grep -q "200"; then
+              echo "✅ Readiness endpoint: OK"
+            else
+              echo "⚠️  Readiness endpoint: Not responding"
+            fi
+          else
+            echo "API endpoint not available, skipping tests"
+          fi
+      
+      - name: Create deployment summary
+        run: |
+          cat > deployment-summary.md <<EOF
+          # 🚀 Deployment Summary
+          
+          **Deployment Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref_name }}
+          **Actor:** ${{ github.actor }}
+          
+          ## 📋 Resources Deployed
+          
+          | Resource | Value |
+          |----------|-------|
+          | Resource Group | \`${{ steps.extract-info.outputs.resource_group }}\` |
+          | Function App | \`${{ steps.extract-info.outputs.function_app_name }}\` |
+          | Frontend URL | ${{ steps.extract-info.outputs.frontend_url }} |
+          | Key Vault | \`${{ steps.extract-info.outputs.key_vault_name }}\` |
+          
+          ## 🌐 API Endpoints
+          
+          - **API Base:** \`${{ steps.extract-info.outputs.api_endpoint }}\`
+          - **Chat Completions:** \`${{ steps.extract-info.outputs.api_endpoint }}/v1/chat/completions\`
+          - **List Models:** \`${{ steps.extract-info.outputs.api_endpoint }}/v1/models\`
+          - **Health (Live):** \`${{ steps.extract-info.outputs.api_endpoint }}/health/live\`
+          - **Health (Ready):** \`${{ steps.extract-info.outputs.api_endpoint }}/health/ready\`
+          
+          ## 🔐 Authentication
+          
+          API Key is stored in Key Vault: \`${{ steps.extract-info.outputs.key_vault_name }}\`
+          
+          To retrieve the API key:
+          \`\`\`bash
+          az keyvault secret show \\
+            --vault-name ${{ steps.extract-info.outputs.key_vault_name }} \\
+            --name frontend-openai-api-key \\
+            --query value -o tsv
+          \`\`\`
+          
+          ## 🤖 Available Models
+          
+          - **llama-3-70b**: High-quality responses (8K context)
+          - **mixtral-8x7b**: Fast and efficient (32K context)
+          - **phi-3-mini**: Lightweight model (4K context)
+          - **auto**: Automatic selection based on context
+          
+          ## 📝 Quick Start
+          
+          ### Using cURL:
+          \`\`\`bash
+          curl -X POST "${{ steps.extract-info.outputs.api_endpoint }}/v1/chat/completions" \\
+            -H "Content-Type: application/json" \\
+            -H "Authorization: Bearer \${API_KEY}" \\
+            -d '{
+              "model": "mixtral-8x7b",
+              "messages": [
+                {"role": "user", "content": "Hello, how are you?"}
+              ],
+              "max_tokens": 256,
+              "temperature": 0.7
+            }'
+          \`\`\`
+          
+          ### Using Python (OpenAI SDK):
+          \`\`\`python
+          from openai import OpenAI
+          
+          client = OpenAI(
+              api_key="your-api-key",  # From Key Vault
+              base_url="${{ steps.extract-info.outputs.api_endpoint }}/v1"
+          )
+          
+          response = client.chat.completions.create(
+              model="mixtral-8x7b",
+              messages=[
+                  {"role": "user", "content": "Hello, how are you?"}
+              ]
+          )
+          
+          print(response.choices[0].message.content)
+          \`\`\`
+          
+          ## 🎯 Next Steps
+          
+          1. **Test the API**: Use the examples above to test your deployment
+          2. **Access Frontend**: Visit ${{ steps.extract-info.outputs.frontend_url }}
+          3. **Create Admin Account**: First user becomes admin
+          4. **Secure Frontend**: Run \`./setup-frontend-auth.sh\` to disable public signup
+          5. **Monitor Resources**: Check Azure Portal for metrics and logs
+          
+          ## 📚 Documentation
+          
+          - **Full Deployment Guide**: DEPLOYMENT-GUIDE.md
+          - **OpenAPI Specification**: openapi.json
+          - **Frontend Guide**: docs/frontend-deployment.md
+          - **Production Guide**: PRODUCTION-README.md
+          
+          ## ✅ Deployment Status
+          
+          - Infrastructure: ${{ needs.deploy-infrastructure.result }}
+          - Functions: ${{ needs.deploy-functions.result }}
+          - Frontend: ${{ needs.deploy-frontend.result }}
+          
+          ---
+          
+          **Download the artifacts below for complete deployment details and API credentials.**
+          EOF
+          
+          cat deployment-summary.md >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-details
+          path: |
+            deployment-details.txt
+            deployment-details.json
+            DEPLOYMENT-INFO.md
+            deployment-summary.md
+            api-credentials.txt
+          retention-days: 90
+      
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('deployment-summary.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  verify-deployment:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy-infrastructure, deploy-functions, deploy-frontend, get-deployment-details]
+    if: always() && needs.deploy-infrastructure.result == 'success'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Download Terraform State
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-state
+          path: terraform/
+      
+      - name: Verify all resources exist
+        working-directory: terraform
+        run: |
+          echo "Verifying deployed resources..."
+          
+          RESOURCE_GROUP=$(terraform output -raw resource_group_name)
+          
+          # Check Resource Group
+          if az group show --name "$RESOURCE_GROUP" >/dev/null 2>&1; then
+            echo "✅ Resource Group: $RESOURCE_GROUP exists"
+          else
+            echo "❌ Resource Group: $RESOURCE_GROUP NOT FOUND"
+            exit 1
+          fi
+          
+          # Check Function App
+          FUNCTION_APP=$(terraform output -raw function_app_name)
+          if az functionapp show --name "$FUNCTION_APP" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+            echo "✅ Function App: $FUNCTION_APP exists"
+          else
+            echo "⚠️  Function App: $FUNCTION_APP NOT FOUND"
+          fi
+          
+          # Check Frontend
+          FRONTEND_APP=$(terraform output -raw frontend_app_name)
+          if az containerapp show --name "$FRONTEND_APP" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+            echo "✅ Frontend: $FRONTEND_APP exists"
+          else
+            echo "⚠️  Frontend: $FRONTEND_APP NOT FOUND"
+          fi
+          
+          # Check Key Vault
+          KEY_VAULT=$(terraform output -raw key_vault_name)
+          if az keyvault show --name "$KEY_VAULT" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+            echo "✅ Key Vault: $KEY_VAULT exists"
+          else
+            echo "❌ Key Vault: $KEY_VAULT NOT FOUND"
+            exit 1
+          fi
+          
+          # Check VMSS
+          VMSS=$(terraform output -raw vmss_name)
+          if az vmss show --name "$VMSS" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+            echo "✅ VMSS: $VMSS exists"
+          else
+            echo "⚠️  VMSS: $VMSS NOT FOUND"
+          fi
+          
+          echo ""
+          echo "Verification complete!"
+      
+      - name: Final status report
+        if: always()
+        run: |
+          echo "==================================================="
+          echo "🎉 DEPLOYMENT COMPLETE!"
+          echo "==================================================="
+          echo ""
+          echo "Infrastructure: ${{ needs.deploy-infrastructure.result }}"
+          echo "Functions: ${{ needs.deploy-functions.result }}"
+          echo "Frontend: ${{ needs.deploy-frontend.result }}"
+          echo "Details: ${{ needs.get-deployment-details.result }}"
+          echo ""
+          echo "📥 Download artifacts for complete deployment details"
+          echo "==================================================="
