@@ -94,7 +94,6 @@ Navigate to the URL and create an admin account on first visit.
 
 - [Frontend Deployment Guide](docs/frontend-deployment.md)
 - [Frontend Usage Guide](docs/frontend-usage.md)
-- Deployment Guide
-- API Usage
-- Architecture
-- Runbook
+- [GitHub Actions Frontend Deployment](docs/github-actions-frontend-deployment.md)
+- [Operations & Production Guide](docs/operations-guide.md)
+- [Load Testing Guide](scripts/README-load-testing.md)

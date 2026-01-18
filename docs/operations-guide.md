@@ -1,8 +1,8 @@
-# 🚀 AI Inference Platform - Production Deployment Guide
+# 🚀 AI Inference Platform - Operations & Production Guide
 
 ## Overview
 
-This is a production-ready AI inference arbitrage platform that resells GPU-based AI inference using Azure spot instances. The platform includes complete infrastructure as code, CI/CD pipelines, monitoring, and load testing.
+This is the operations guide for the AI inference arbitrage platform that resells GPU-based AI inference using Azure spot instances. This guide covers deployment, monitoring, troubleshooting, and production best practices.
 
 ## Architecture
 

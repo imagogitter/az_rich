@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Safe wrapper for deployment — uses the cleaned full script `deploy-full-clean.sh`.
-if [ -x "./deploy-full-clean.sh" ]; then
-  exec ./deploy-full-clean.sh "$@"
+# Main deployment script wrapper - deploys infrastructure
+if [ -x "./deploy-infrastructure.sh" ]; then
+  exec ./deploy-infrastructure.sh "$@"
 else
-  echo "⚠️ deploy-full-clean.sh is missing or not executable. Inspect 'deploy-full-clean.sh' and run: chmod +x deploy-full-clean.sh"
+  echo "⚠️ deploy-infrastructure.sh is missing or not executable."
+  echo "Run: chmod +x deploy-infrastructure.sh"
   exit 1
 fi
