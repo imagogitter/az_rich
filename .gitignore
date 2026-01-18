@@ -9,17 +9,35 @@ terraform/.tfstate
 terraform/.tfstate.*
 terraform/*.tfplan
 terraform/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
 
 # Python
-pycache/
+__pycache__/
 *.py[cod]
 .venv/
 venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
 
 # Azure Functions
 local.settings.json
 .python_packages/
 .func/
+*.zip
+
+# Deployment artifacts
+output/
+artifacts/
+deployment.log
+deployment-*.txt
+deployment-*.json
+deployment-*.md
+api-credentials.txt
+DEPLOYMENT-INFO.md
 
 # IDE
 .vscode/
@@ -34,3 +52,8 @@ Thumbs.db
 *.pem
 *.key
 secrets/
+
+# Test coverage
+.coverage
+coverage.xml
+htmlcov/
