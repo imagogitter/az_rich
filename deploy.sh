@@ -2,10 +2,13 @@
 set -euo pipefail
 
 # Main deployment script wrapper - deploys infrastructure
-if [ -x "./deploy-infrastructure.sh" ]; then
-  exec ./deploy-infrastructure.sh "$@"
-else
-  echo "⚠️ deploy-infrastructure.sh is missing or not executable."
+if [ ! -f "./deploy-infrastructure.sh" ]; then
+  echo "⚠️ deploy-infrastructure.sh not found."
+  exit 1
+elif [ ! -x "./deploy-infrastructure.sh" ]; then
+  echo "⚠️ deploy-infrastructure.sh is not executable."
   echo "Run: chmod +x deploy-infrastructure.sh"
   exit 1
 fi
+
+exec ./deploy-infrastructure.sh "$@"
