@@ -95,7 +95,7 @@ resource "azurerm_monitor_metric_alert" "cosmos_throttling" {
 
 # Action Group for alerts
 resource "azurerm_monitor_action_group" "main" {
-  name                = "${local.project_name}-alerts"
+  name                = "${var.project_name}-alerts"
   resource_group_name = azurerm_resource_group.main.name
   short_name          = "AIAlerts"
 

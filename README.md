@@ -4,16 +4,25 @@ GPU-based AI inference reselling platform with 200-300% margins using Azure spot
 
 ## Quick Start
 
-**🚀 [Frontend Quick Start Guide](QUICKSTART-FRONTEND.md)** - Get up and running in 4 steps!
+**🚀 [Full Deployment Workflow Guide](docs/workflow-deployment-guide.md)** - Complete GitHub Actions deployment!
 
-### Option 1: Automated Deployment (GitHub Actions)
+### Option 1: Automated Deployment (GitHub Actions) **[RECOMMENDED]**
 
-1. Configure repository secrets:
+1. **Configure repository secrets:**
    - `AZURE_CREDENTIALS` - Azure service principal credentials
    
-2. Push to `main` branch or manually trigger the "Frontend Deployment" workflow
-
-3. Download artifacts for connection details and LLM API configuration
+2. **Trigger the workflow:**
+   - Go to [Actions → Full Azure Deployment](https://github.com/imagogitter/az_rich/actions/workflows/full-deployment.yml)
+   - Click "Run workflow"
+   - Select branch and environment
+   - Click "Run workflow" button
+   
+3. **Download deployment artifacts** for:
+   - Complete endpoint details
+   - API keys and configuration
+   - Usage examples and documentation
+   
+📖 **See [Workflow Deployment Guide](docs/workflow-deployment-guide.md) for detailed instructions**
 
 ### Option 2: Local One-Command Deployment
 
@@ -92,9 +101,9 @@ Navigate to the URL and create an admin account on first visit.
 
 ## Documentation
 
-- [Frontend Deployment Guide](docs/frontend-deployment.md)
-- [Frontend Usage Guide](docs/frontend-usage.md)
-- Deployment Guide
-- API Usage
-- Architecture
-- Runbook
+- **[Complete Deployment Guide](DEPLOYMENT-GUIDE.md)** - Comprehensive deployment reference
+- **[Workflow Deployment Guide](docs/workflow-deployment-guide.md)** - GitHub Actions deployment
+- [Frontend Deployment Guide](docs/frontend-deployment.md) - Frontend-specific guide
+- [Frontend Usage Guide](docs/frontend-usage.md) - Using the web interface
+- [OpenAPI Specification](openapi.json) - API reference
+- [Production README](PRODUCTION-README.md) - Production deployment details
