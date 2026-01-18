@@ -4,7 +4,34 @@ GPU-based AI inference reselling platform with 200-300% margins using Azure spot
 
 ## Quick Start
 
-**🚀 [Frontend Quick Start Guide](QUICKSTART-FRONTEND.md)** - Get up and running in 4 steps!
+**🚀 [Full Deployment Workflow Guide](docs/workflow-deployment-guide.md)** - Complete GitHub Actions deployment!
+
+### Option 1: Automated Deployment (GitHub Actions) **[RECOMMENDED]**
+
+1. **Configure repository secrets:**
+   - `AZURE_CREDENTIALS` - Azure service principal credentials
+   
+2. **Trigger the workflow:**
+   - Go to [Actions → Full Azure Deployment](https://github.com/imagogitter/az_rich/actions/workflows/full-deployment.yml)
+   - Click "Run workflow"
+   - Select branch and environment
+   - Click "Run workflow" button
+   
+3. **Download deployment artifacts** for:
+   - Complete endpoint details
+   - API keys and configuration
+   - Usage examples and documentation
+   
+📖 **See [Workflow Deployment Guide](docs/workflow-deployment-guide.md) for detailed instructions**
+
+### Option 2: Local One-Command Deployment
+
+```bash
+# Complete deployment (infrastructure + frontend + connection details)
+./setup-frontend-complete.sh
+```
+
+### Option 3: Manual Step-by-Step
 
 ```bash
 # Step 1: Deploy infrastructure

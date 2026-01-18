@@ -19,9 +19,58 @@ The frontend is deployed as an Azure Container App running Open WebUI, which pro
 - Terraform deployed infrastructure (run `terraform apply` first)
 - Azure subscription with permissions to create Container Apps
 
-## Deployment Steps
+## Deployment Methods
 
-### 1. Deploy Infrastructure
+### Method 1: Automated Deployment with GitHub Actions (Recommended)
+
+The easiest way to deploy is using the GitHub Actions workflow:
+
+1. **Configure Repository Secrets:**
+   - `AZURE_CREDENTIALS`: Azure service principal credentials (JSON format)
+   
+   To create Azure credentials:
+   ```bash
+   az ad sp create-for-rbac --name "github-actions-ai-inference" \
+     --role contributor \
+     --scopes /subscriptions/<subscription-id>/resourceGroups/<resource-group> \
+     --sdk-auth
+   ```
+
+2. **Trigger Deployment:**
+   - Push changes to `main` branch, or
+   - Manually trigger via GitHub Actions UI (Actions → Frontend Deployment → Run workflow)
+
+3. **View Results:**
+   - Check the workflow run for connection details
+   - Download artifacts containing deployment information
+
+The workflow will:
+- Deploy infrastructure using Terraform
+- Build and push frontend container to ACR
+- Display connection details in logs
+- Create an artifact with LLM API configuration
+
+### Method 2: Complete Local Deployment
+
+Run the all-in-one deployment script:
+
+```bash
+./setup-frontend-complete.sh
+```
+
+This script performs:
+1. Infrastructure deployment with Terraform
+2. Frontend container build and push to ACR
+3. Connection details retrieval and display
+
+Requirements:
+- Azure CLI logged in (`az login`)
+- Docker running
+- Terraform installed
+
+### Method 3: Manual Step-by-Step Deployment
+
+#### 1. Deploy Infrastructure
 
 First, deploy the base infrastructure using Terraform:
 
@@ -37,7 +86,7 @@ This creates:
 - Azure Container App (with placeholder image)
 - Key Vault secrets for API authentication
 
-### 2. Build and Deploy Frontend
+#### 2. Build and Deploy Frontend
 
 Run the frontend deployment script:
 
@@ -51,7 +100,7 @@ This script will:
 3. Push the image to ACR
 4. Trigger a Container App revision restart
 
-### 3. Get Frontend URL
+#### 3. Get Frontend URL
 
 After deployment, get the frontend URL:
 
@@ -65,7 +114,29 @@ Example output:
 https://ai-inference-platform-frontend.happygrass-12345678.eastus.azurecontainerapps.io
 ```
 
-### 4. Initial Setup
+### LLM Connection Details
+
+After deployment, you can retrieve the LLM API connection details:
+
+**API Base URL:**
+```bash
+cd terraform
+terraform output -raw function_app_name
+# Use: https://<function-app-name>.azurewebsites.net/api/v1
+```
+
+**API Key (from Key Vault):**
+```bash
+cd terraform
+KEY_VAULT_NAME=$(terraform output -raw key_vault_name)
+az keyvault secret show --vault-name $KEY_VAULT_NAME \
+  --name frontend-openai-api-key \
+  --query value -o tsv
+```
+
+These values are configured automatically in the frontend container app.
+
+#### 4. Initial Setup
 
 1. Navigate to the frontend URL in your browser
 2. You'll be prompted to sign up for the first time

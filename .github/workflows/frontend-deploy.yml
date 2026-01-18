@@ -1,0 +1,282 @@
+name: Frontend Deployment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'terraform/**'
+      - 'setup-frontend-complete.sh'
+      - '.github/workflows/frontend-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  TERRAFORM_VERSION: '1.5.0'
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+jobs:
+  deploy-frontend:
+    name: Deploy Frontend to Azure
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Validate required secrets
+        run: |
+          echo "Validating required secrets configuration..."
+          if [ -z "$AZURE_CREDENTIALS" ]; then
+            echo "::error::AZURE_CREDENTIALS secret is not set. Please configure it in repository settings."
+            exit 1
+          fi
+          echo "✅ AZURE_CREDENTIALS secret is configured"
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Configure Azure credentials
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Verify Azure login
+        run: |
+          echo "Verifying Azure authentication..."
+          az account show || {
+            echo "::error::Azure authentication failed"
+            exit 1
+          }
+          echo "✅ Azure authentication successful"
+      
+      - name: Set deployment metadata
+        run: |
+          echo "Setting deployment metadata..."
+          echo "DEPLOYMENT_TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)" >> $GITHUB_ENV
+      
+      - name: Run complete frontend deployment
+        id: deploy
+        run: |
+          echo "::group::Frontend Deployment"
+          set -euo pipefail
+          
+          # Make script executable
+          chmod +x setup-frontend-complete.sh
+          
+          # Run deployment script
+          ./setup-frontend-complete.sh 2>&1 | tee deployment.log
+          
+          echo "::endgroup::"
+        continue-on-error: false
+      
+      - name: Handle Terraform errors
+        if: failure()
+        run: |
+          echo "::error::Deployment failed. Checking for common issues..."
+          
+          if grep -q "Error: creating.*Container Registry" deployment.log 2>/dev/null; then
+            echo "::error::Container Registry creation failed. Check Azure quotas and permissions."
+          fi
+          
+          if grep -q "Error: creating.*Container App" deployment.log 2>/dev/null; then
+            echo "::error::Container App creation failed. Check Azure Container Apps availability in your region."
+          fi
+          
+          if grep -q "Error: creating.*Key Vault" deployment.log 2>/dev/null; then
+            echo "::error::Key Vault creation failed. The name might already exist or soft-deleted."
+          fi
+          
+          if grep -q "docker push.*failed" deployment.log 2>/dev/null; then
+            echo "::error::Docker push to ACR failed. Check ACR authentication and network connectivity."
+          fi
+          
+          if [ -f deployment.log ]; then
+            echo "::group::Deployment Logs"
+            cat deployment.log
+            echo "::endgroup::"
+          fi
+          
+          exit 1
+      
+      - name: Retrieve connection details
+        id: connection-details
+        if: success()
+        run: |
+          echo "::group::Retrieving Connection Details"
+          
+          cd terraform
+          
+          # Get outputs
+          FRONTEND_URL=$(terraform output -raw frontend_url 2>/dev/null || echo "")
+          RESOURCE_GROUP=$(terraform output -raw resource_group_name 2>/dev/null || echo "")
+          FRONTEND_APP_NAME=$(terraform output -raw frontend_app_name 2>/dev/null || echo "")
+          FUNCTION_APP_NAME=$(terraform output -raw function_app_name 2>/dev/null || echo "")
+          KEY_VAULT_NAME=$(terraform output -raw key_vault_name 2>/dev/null || echo "")
+          
+          # Try to get API key from Key Vault
+          if [ -n "$KEY_VAULT_NAME" ]; then
+            OPENAI_API_KEY=$(az keyvault secret show \
+              --vault-name "$KEY_VAULT_NAME" \
+              --name "frontend-openai-api-key" \
+              --query "value" -o tsv 2>/dev/null || echo "Unable to retrieve")
+          else
+            OPENAI_API_KEY="Key Vault not available"
+          fi
+          
+          # Set outputs for use in other steps
+          echo "frontend_url=$FRONTEND_URL" >> $GITHUB_OUTPUT
+          echo "resource_group=$RESOURCE_GROUP" >> $GITHUB_OUTPUT
+          echo "frontend_app_name=$FRONTEND_APP_NAME" >> $GITHUB_OUTPUT
+          echo "function_app_name=$FUNCTION_APP_NAME" >> $GITHUB_OUTPUT
+          if [ -n "$FUNCTION_APP_NAME" ]; then
+            echo "openai_api_base=https://${FUNCTION_APP_NAME}.azurewebsites.net/api/v1" >> $GITHUB_OUTPUT
+          else
+            echo "openai_api_base=" >> $GITHUB_OUTPUT
+          fi
+          
+          # Display in logs (mask sensitive data)
+          echo "Frontend URL: $FRONTEND_URL"
+          echo "Resource Group: $RESOURCE_GROUP"
+          echo "Frontend App: $FRONTEND_APP_NAME"
+          echo "Function App: $FUNCTION_APP_NAME"
+          if [ -n "$FUNCTION_APP_NAME" ]; then
+            echo "API Base URL: https://${FUNCTION_APP_NAME}.azurewebsites.net/api/v1"
+          else
+            echo "API Base URL: Not available"
+          fi
+          echo "API Key: ****... (masked)"
+          
+          cd ..
+          
+          echo "::endgroup::"
+      
+      - name: Create connection details artifact
+        if: success()
+        run: |
+          echo "Creating connection details artifact..."
+          
+          mkdir -p artifacts
+          
+          cat > artifacts/connection-details.md <<EOF
+          # AI Inference Platform - Deployment Details
+          
+          **Deployment Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Git Commit:** ${{ github.sha }}
+          **Deployed By:** ${{ github.actor }}
+          
+          ## Frontend Access
+          
+          - **Frontend URL:** ${{ steps.connection-details.outputs.frontend_url }}
+          - **Resource Group:** ${{ steps.connection-details.outputs.resource_group }}
+          - **Container App Name:** ${{ steps.connection-details.outputs.frontend_app_name }}
+          
+          ## LLM API Configuration
+          
+          - **API Base URL:** ${{ steps.connection-details.outputs.openai_api_base }}
+          - **Function App Name:** ${{ steps.connection-details.outputs.function_app_name }}
+          - **API Key:** Stored in Azure Key Vault (retrieve with command below)
+          
+          ## Next Steps
+          
+          1. **Access the Frontend:**
+             Visit ${{ steps.connection-details.outputs.frontend_url }}
+          
+          2. **Create Admin Account:**
+             - Click "Sign Up" on the frontend
+             - First user becomes the admin
+          
+          3. **Secure the Frontend:**
+             Run: \`./setup-frontend-auth.sh\` to disable public signup
+          
+          ## Useful Commands
+          
+          ### View Container App Logs
+          \`\`\`bash
+          az containerapp logs show \\
+            --name ${{ steps.connection-details.outputs.frontend_app_name }} \\
+            --resource-group ${{ steps.connection-details.outputs.resource_group }} \\
+            --tail 50
+          \`\`\`
+          
+          ### Retrieve API Key
+          \`\`\`bash
+          az keyvault secret show \\
+            --vault-name \$(cd terraform && terraform output -raw key_vault_name) \\
+            --name frontend-openai-api-key \\
+            --query value -o tsv
+          \`\`\`
+          
+          ### Restart Frontend
+          \`\`\`bash
+          az containerapp revision restart \\
+            --name ${{ steps.connection-details.outputs.frontend_app_name }} \\
+            --resource-group ${{ steps.connection-details.outputs.resource_group }}
+          \`\`\`
+          
+          ## Environment Variables for External Integration
+          
+          If you need to connect external tools to this deployment:
+          
+          \`\`\`bash
+          export OPENAI_API_BASE_URL="${{ steps.connection-details.outputs.openai_api_base }}"
+          export OPENAI_API_KEY="<retrieve from Key Vault using command above>"
+          \`\`\`
+          EOF
+          
+          echo "✅ Connection details saved to artifacts/connection-details.md"
+      
+      - name: Upload deployment artifacts
+        if: always()
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: deployment-artifacts-${{ github.run_number }}
+          path: |
+            artifacts/
+            output/
+            deployment.log
+          retention-days: 30
+          if-no-files-found: ignore
+      
+      - name: Display deployment summary
+        if: success()
+        run: |
+          echo "## 🎉 Frontend Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Deployment Information" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend URL:** [${{ steps.connection-details.outputs.frontend_url }}](${{ steps.connection-details.outputs.frontend_url }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Resource Group:** \`${{ steps.connection-details.outputs.resource_group }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Container App:** \`${{ steps.connection-details.outputs.frontend_app_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **API Base URL:** \`${{ steps.connection-details.outputs.openai_api_base }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔐 Security Note" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "API credentials are stored securely in Azure Key Vault. Download the deployment artifacts for detailed connection information." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. Visit the frontend URL to create your admin account" >> $GITHUB_STEP_SUMMARY
+          echo "2. Run \`./setup-frontend-auth.sh\` to secure the frontend" >> $GITHUB_STEP_SUMMARY
+          echo "3. Download the artifacts to get detailed connection information" >> $GITHUB_STEP_SUMMARY
