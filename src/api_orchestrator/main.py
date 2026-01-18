@@ -21,9 +21,21 @@ logger = logging.getLogger(__name__)
 
 # Model configuration
 MODELS = {
-    "mixtral-8x7b": {"context_length": 32768, "price_per_1k_tokens": 0.002, "priority": 1},
-    "llama-3-70b": {"context_length": 8192, "price_per_1k_tokens": 0.003, "priority": 2},
-    "phi-3-mini": {"context_length": 4096, "price_per_1k_tokens": 0.0005, "priority": 0},
+    "mixtral-8x7b": {
+        "context_length": 32768,
+        "price_per_1k_tokens": 0.002,
+        "priority": 1,
+    },
+    "llama-3-70b": {
+        "context_length": 8192,
+        "price_per_1k_tokens": 0.003,
+        "priority": 2,
+    },
+    "phi-3-mini": {
+        "context_length": 4096,
+        "price_per_1k_tokens": 0.0005,
+        "priority": 0,
+    },
 }
 
 
@@ -65,7 +77,9 @@ def validate_chat_request(request: Dict[str, Any]) -> None:
     # Check token limits
     total_chars = sum(len(str(m.get("content", ""))) for m in messages)
     estimated_tokens = total_chars // 4
-    selected_model = model if model != "auto" else "mixtral-8x7b"  # Default for validation
+    selected_model = (
+        model if model != "auto" else "mixtral-8x7b"
+    )  # Default for validation
     max_context = MODELS.get(selected_model, MODELS["mixtral-8x7b"])["context_length"]
 
     if estimated_tokens > max_context:
@@ -126,7 +140,8 @@ class CacheManager:
             # In production, use managed identity
             credential = DefaultAzureCredential()
             self._client = CosmosClient(
-                url=f"https://{self.cosmos_account}.documents.azure.com:443/", credential=credential
+                url=f"https://{self.cosmos_account}.documents.azure.com:443/",
+                credential=credential,
             )
         return self._client
 
@@ -214,7 +229,15 @@ class ModelRouter:
 
         # Analyze message complexity (presence of code, technical terms, etc.)
         complexity_score = 0
-        technical_terms = ["function", "class", "import", "def", "api", "database", "algorithm"]
+        technical_terms = [
+            "function",
+            "class",
+            "import",
+            "def",
+            "api",
+            "database",
+            "algorithm",
+        ]
         content_lower = " ".join(m.get("content", "").lower() for m in messages)
 
         for term in technical_terms:
@@ -225,9 +248,9 @@ class ModelRouter:
         if estimated_tokens > 4000 or complexity_score > 2:
             return "mixtral-8x7b"  # Best for complex, long contexts
         elif estimated_tokens > 2000 or complexity_score > 0:
-            return "llama-3-70b"   # Good balance of capability and cost
+            return "llama-3-70b"  # Good balance of capability and cost
         else:
-            return "phi-3-mini"     # Fastest and cheapest for simple tasks
+            return "phi-3-mini"  # Fastest and cheapest for simple tasks
 
     def get_backend_url(self, model: str) -> str:
         """Get backend URL for model."""
@@ -242,7 +265,9 @@ cache_manager = CacheManager()
 model_router = ModelRouter()
 
 
-async def forward_to_backend(url: str, request: Dict, headers: Dict, max_retries: int = 3) -> Dict:
+async def forward_to_backend(
+    url: str, request: Dict, headers: Dict, max_retries: int = 3
+) -> Dict:
     """Forward request to inference backend with retry logic."""
     import asyncio
 
@@ -250,14 +275,17 @@ async def forward_to_backend(url: str, request: Dict, headers: Dict, max_retries
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url, json=request, headers=headers, timeout=aiohttp.ClientTimeout(total=120)
+                    url,
+                    json=request,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=120),
                 ) as response:
                     if response.status == 200:
                         return await response.json()
                     elif response.status >= 500:
                         # Retry on server errors
                         if attempt < max_retries - 1:
-                            await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                            await asyncio.sleep(2**attempt)  # Exponential backoff
                             continue
                         else:
                             return await response.json()  # Return error response
@@ -266,8 +294,10 @@ async def forward_to_backend(url: str, request: Dict, headers: Dict, max_retries
                         return await response.json()
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             if attempt < max_retries - 1:
-                logger.warning(f"Backend request failed (attempt {attempt + 1}/{max_retries}): {e}")
-                await asyncio.sleep(2 ** attempt)
+                logger.warning(
+                    f"Backend request failed (attempt {attempt + 1}/{max_retries}): {e}"
+                )
+                await asyncio.sleep(2**attempt)
                 continue
             else:
                 raise e
@@ -281,20 +311,28 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
     request_id = req.headers.get("X-Request-ID", f"req-{int(time.time()*1000)}")
 
     # Structured logging
-    logger.info("Request started", extra={
-        "request_id": request_id,
-        "method": req.method,
-        "url": req.url,
-        "user_agent": req.headers.get("User-Agent", "unknown"),
-        "content_length": req.headers.get("Content-Length", 0)
-    })
+    logger.info(
+        "Request started",
+        extra={
+            "request_id": request_id,
+            "method": req.method,
+            "url": req.url,
+            "user_agent": req.headers.get("User-Agent", "unknown"),
+            "content_length": req.headers.get("Content-Length", 0),
+        },
+    )
 
     try:
         # Parse request
         try:
             body = req.get_json()
         except ValueError:
-            error_msg = {"error": {"code": "invalid_request", "message": "Invalid JSON in request body"}}
+            error_msg = {
+                "error": {
+                    "code": "invalid_request",
+                    "message": "Invalid JSON in request body",
+                }
+            }
             return func.HttpResponse(
                 json.dumps(error_msg),
                 status_code=400,
@@ -313,27 +351,35 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
 
         # Select model
         requested_model = body.get("model", "auto")
-        selected_model = model_router.select_model(requested_model, body.get("messages", []))
+        selected_model = model_router.select_model(
+            requested_model, body.get("messages", [])
+        )
         body["model"] = selected_model
 
-        logger.info(f"Model selected: {selected_model}", extra={
-            "request_id": request_id,
-            "requested_model": requested_model,
-            "selected_model": selected_model,
-            "message_count": len(body.get("messages", []))
-        })
+        logger.info(
+            f"Model selected: {selected_model}",
+            extra={
+                "request_id": request_id,
+                "requested_model": requested_model,
+                "selected_model": selected_model,
+                "message_count": len(body.get("messages", [])),
+            },
+        )
 
         # Check cache (for non-streaming requests)
         if not body.get("stream", False):
             cached = await cache_manager.get_cached_response(body)
             if cached:
                 duration_ms = int((time.time() - start_time) * 1000)
-                logger.info("Cache hit served", extra={
-                    "request_id": request_id,
-                    "cache_hit": True,
-                    "duration_ms": duration_ms,
-                    "model": selected_model
-                })
+                logger.info(
+                    "Cache hit served",
+                    extra={
+                        "request_id": request_id,
+                        "cache_hit": True,
+                        "duration_ms": duration_ms,
+                        "model": selected_model,
+                    },
+                )
                 cached["_cached"] = True
                 return func.HttpResponse(
                     json.dumps(cached),
@@ -360,13 +406,16 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
 
         duration_ms = int((time.time() - start_time) * 1000)
 
-        logger.info("Request completed successfully", extra={
-            "request_id": request_id,
-            "cache_hit": False,
-            "duration_ms": duration_ms,
-            "model": selected_model,
-            "status_code": 200
-        })
+        logger.info(
+            "Request completed successfully",
+            extra={
+                "request_id": request_id,
+                "cache_hit": False,
+                "duration_ms": duration_ms,
+                "model": selected_model,
+                "status_code": 200,
+            },
+        )
 
         return func.HttpResponse(
             json.dumps(response),
@@ -382,17 +431,21 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
 
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
-        logger.error("Request failed", extra={
-            "request_id": request_id,
-            "error": str(e),
-            "duration_ms": duration_ms,
-            "status_code": 500
-        }, exc_info=True)
+        logger.error(
+            "Request failed",
+            extra={
+                "request_id": request_id,
+                "error": str(e),
+                "duration_ms": duration_ms,
+                "status_code": 500,
+            },
+            exc_info=True,
+        )
         error_response = {
             "error": {
                 "code": "internal_error",
                 "message": "An internal error occurred",
-                "request_id": request_id
+                "request_id": request_id,
             }
         }
         return func.HttpResponse(

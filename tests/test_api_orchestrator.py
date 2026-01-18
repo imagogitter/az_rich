@@ -9,10 +9,13 @@ async def test_api_valid_request(mock_request):
     """Test API handles valid chat completion request."""
     mock_response_data = {"choices": [{"message": {"content": "Hello"}}]}
 
-    with patch('src.api_orchestrator.main.CacheManager') as mock_cache_class, \
-         patch('src.api_orchestrator.main.ModelRouter') as mock_router_class, \
-         patch('src.api_orchestrator.main.SecretsManager') as mock_secrets_class, \
-         patch('src.api_orchestrator.main.forward_to_backend', new_callable=AsyncMock) as mock_forward:
+    with patch("src.api_orchestrator.main.CacheManager") as mock_cache_class, patch(
+        "src.api_orchestrator.main.ModelRouter"
+    ) as mock_router_class, patch(
+        "src.api_orchestrator.main.SecretsManager"
+    ) as mock_secrets_class, patch(
+        "src.api_orchestrator.main.forward_to_backend", new_callable=AsyncMock
+    ) as mock_forward:
 
         # Setup mock instances
         mock_cache = mock_cache_class.return_value
@@ -21,7 +24,9 @@ async def test_api_valid_request(mock_request):
 
         mock_router = mock_router_class.return_value
         mock_router.select_model.return_value = "mixtral-8x7b"
-        mock_router.get_backend_url.return_value = "http://backend:8080/v1/chat/completions"
+        mock_router.get_backend_url.return_value = (
+            "http://backend:8080/v1/chat/completions"
+        )
 
         mock_secrets = mock_secrets_class.return_value
         mock_secrets.get_secret.return_value = "test-key"
@@ -41,8 +46,9 @@ async def test_api_cached_response(mock_request):
     """Test API returns cached response when available."""
     cached_data = {"choices": [{"message": {"content": "Cached response"}}]}
 
-    with patch('src.api_orchestrator.main.cache_manager') as mock_cache, \
-         patch('src.api_orchestrator.main.model_router') as mock_router:
+    with patch("src.api_orchestrator.main.cache_manager") as mock_cache, patch(
+        "src.api_orchestrator.main.model_router"
+    ) as mock_router:
 
         mock_cache.get_cached_response = AsyncMock(return_value=cached_data)
         mock_router.select_model.return_value = "mixtral-8x7b"
@@ -88,21 +94,24 @@ async def test_api_backend_error():
     """Test API handles backend errors gracefully."""
     req = Mock()
     req.headers = {"X-Request-ID": "test-id"}
-    req.get_json.return_value = {
-        "messages": [{"role": "user", "content": "Hello"}]
-    }
+    req.get_json.return_value = {"messages": [{"role": "user", "content": "Hello"}]}
 
-    with patch('src.api_orchestrator.main.CacheManager') as mock_cache_class, \
-         patch('src.api_orchestrator.main.ModelRouter') as mock_router_class, \
-         patch('src.api_orchestrator.main.SecretsManager') as mock_secrets_class, \
-         patch('src.api_orchestrator.main.forward_to_backend', new_callable=AsyncMock) as mock_forward:
+    with patch("src.api_orchestrator.main.CacheManager") as mock_cache_class, patch(
+        "src.api_orchestrator.main.ModelRouter"
+    ) as mock_router_class, patch(
+        "src.api_orchestrator.main.SecretsManager"
+    ) as mock_secrets_class, patch(
+        "src.api_orchestrator.main.forward_to_backend", new_callable=AsyncMock
+    ) as mock_forward:
 
         mock_cache = mock_cache_class.return_value
         mock_cache.get_cached_response = AsyncMock(return_value=None)
 
         mock_router = mock_router_class.return_value
         mock_router.select_model.return_value = "mixtral-8x7b"
-        mock_router.get_backend_url.return_value = "http://backend:8080/v1/chat/completions"
+        mock_router.get_backend_url.return_value = (
+            "http://backend:8080/v1/chat/completions"
+        )
 
         mock_secrets = mock_secrets_class.return_value
         mock_secrets.get_secret.return_value = "test-key"

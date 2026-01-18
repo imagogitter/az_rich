@@ -24,7 +24,7 @@ def mock_request():
         "model": "mixtral-8x7b",
         "messages": [{"role": "user", "content": "Hello"}],
         "temperature": 0.7,
-        "max_tokens": 100
+        "max_tokens": 100,
     }
     return req
 

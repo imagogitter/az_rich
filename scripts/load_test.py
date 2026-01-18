@@ -25,11 +25,9 @@ class AIInferenceUser(HttpUser):
         """Test simple chat completion"""
         payload = {
             "model": "phi-3-mini",
-            "messages": [
-                {"role": "user", "content": "Hello, how are you?"}
-            ],
+            "messages": [{"role": "user", "content": "Hello, how are you?"}],
             "max_tokens": 50,
-            "temperature": 0.7
+            "temperature": 0.7,
         }
 
         with self.client.post(
@@ -37,9 +35,9 @@ class AIInferenceUser(HttpUser):
             json=payload,
             headers={
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
-            catch_response=True
+            catch_response=True,
         ) as response:
             if response.status_code == 200:
                 response.success()
@@ -55,10 +53,13 @@ class AIInferenceUser(HttpUser):
             "model": "auto",
             "messages": [
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Write a Python function to calculate fibonacci numbers."}
+                {
+                    "role": "user",
+                    "content": "Write a Python function to calculate fibonacci numbers.",
+                },
             ],
             "max_tokens": 200,
-            "temperature": 0.8
+            "temperature": 0.8,
         }
 
         with self.client.post(
@@ -66,9 +67,9 @@ class AIInferenceUser(HttpUser):
             json=payload,
             headers={
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
-            catch_response=True
+            catch_response=True,
         ) as response:
             if response.status_code in [200, 429]:
                 response.success()
@@ -81,7 +82,7 @@ class AIInferenceUser(HttpUser):
         with self.client.get(
             "/v1/models",
             headers={"Authorization": f"Bearer {self.api_key}"},
-            catch_response=True
+            catch_response=True,
         ) as response:
             if response.status_code == 200:
                 response.success()
@@ -95,7 +96,10 @@ class AIInferenceUser(HttpUser):
 
         for endpoint in endpoints:
             with self.client.get(endpoint, catch_response=True) as response:
-                if response.status_code in [200, 503]:  # 503 is acceptable for readiness
+                if response.status_code in [
+                    200,
+                    503,
+                ]:  # 503 is acceptable for readiness
                     response.success()
                 else:
                     response.failure(f"Health check failed: {response.status_code}")
@@ -104,4 +108,5 @@ class AIInferenceUser(HttpUser):
 if __name__ == "__main__":
     # For local testing
     import locust.main
+
     locust.main.main()

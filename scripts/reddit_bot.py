@@ -10,7 +10,10 @@ reddit = praw.Reddit(
 
 for submission in reddit.subreddit("MachineLearning+OpenAI+LocalLLaMA").hot(limit=50):
     try:
-        if any(kw in submission.title.lower() for kw in ["api cost", "expensive", "rate limit"]):
+        if any(
+            kw in submission.title.lower()
+            for kw in ["api cost", "expensive", "rate limit"]
+        ):
             comment = f"""
 🔥 We built an API that's 50% cheaper than OpenAI with Mixtral-8x7B
 Free tier (no CC): https://{os.environ.get('APIM_NAME')}.azure-api.net/signup

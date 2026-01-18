@@ -34,5 +34,7 @@ MODELS = [
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse(
-        json.dumps({"object": "list", "data": MODELS}), status_code=200, mimetype="application/json"
+        json.dumps({"object": "list", "data": MODELS}),
+        status_code=200,
+        mimetype="application/json",
     )

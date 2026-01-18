@@ -22,9 +22,11 @@ def test_health_ready_check(mock_env):
     req = Mock()
     req.route_params = {"check_type": "ready"}
 
-    with patch('src.health.health_functions.check_keyvault') as mock_kv, \
-         patch('src.health.health_functions.check_cosmos') as mock_cosmos, \
-         patch('src.health.health_functions.check_inference_backend') as mock_backend:
+    with patch("src.health.health_functions.check_keyvault") as mock_kv, patch(
+        "src.health.health_functions.check_cosmos"
+    ) as mock_cosmos, patch(
+        "src.health.health_functions.check_inference_backend"
+    ) as mock_backend:
 
         # Make the async functions return values directly for sync testing
         kv_result = {"status": "healthy"}
@@ -36,12 +38,17 @@ def test_health_ready_check(mock_env):
         mock_backend.return_value = backend_result
 
         # Mock the asyncio parts to return the mock results
-        with patch('asyncio.new_event_loop') as mock_new_loop, \
-             patch('asyncio.set_event_loop') as mock_set_loop:
+        with patch("asyncio.new_event_loop") as mock_new_loop, patch(
+            "asyncio.set_event_loop"
+        ) as mock_set_loop:
 
             mock_loop = Mock()
             mock_new_loop.return_value = mock_loop
-            mock_loop.run_until_complete.side_effect = [kv_result, cosmos_result, backend_result]
+            mock_loop.run_until_complete.side_effect = [
+                kv_result,
+                cosmos_result,
+                backend_result,
+            ]
 
             resp = health_main(req)
 
