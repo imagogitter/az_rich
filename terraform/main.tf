@@ -20,12 +20,10 @@ terraform {
     }
   }
   
-  backend "azurerm" {
-    # Configure in backend.tfvars or via CLI
-    # storage_account_name = "tfstate..."
-    # container_name       = "tfstate"
-    # key                  = "ai-inference.tfstate"
-  }
+  # Backend configuration for state management
+  # For production, configure remote backend with:
+  # terraform init -backend-config="storage_account_name=..." -backend-config="container_name=..." -backend-config="key=..."
+  # For CI/CD, state is managed as workflow artifacts (local backend)
 }
 
 provider "azurerm" {

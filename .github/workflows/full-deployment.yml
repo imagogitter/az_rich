@@ -141,9 +141,16 @@ jobs:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
       
+      - name: Restore previous Terraform State (if exists)
+        uses: actions/download-artifact@v4.1.7
+        continue-on-error: true
+        with:
+          name: terraform-state-${{ github.event.inputs.environment || 'prod' }}
+          path: terraform/
+      
       - name: Terraform Init
         working-directory: terraform
-        run: terraform init -backend=false
+        run: terraform init
       
       - name: Terraform Plan
         working-directory: terraform
@@ -166,9 +173,13 @@ jobs:
       - name: Save Terraform State
         uses: actions/upload-artifact@v4.3.3
         with:
-          name: terraform-state
-          path: terraform/terraform.tfstate
-          retention-days: 30
+          name: terraform-state-${{ github.event.inputs.environment || 'prod' }}
+          path: |
+            terraform/terraform.tfstate
+            terraform/terraform.tfstate.backup
+            terraform/.terraform.lock.hcl
+          retention-days: 90
+          if-no-files-found: warn
 
   deploy-functions:
     name: Deploy Azure Functions
@@ -306,7 +317,7 @@ jobs:
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.7
         with:
-          name: terraform-state
+          name: terraform-state-${{ github.event.inputs.environment || 'prod' }}
           path: terraform/
       
       - name: Get comprehensive deployment details
@@ -548,7 +559,7 @@ jobs:
       - name: Download Terraform State
         uses: actions/download-artifact@v4.1.7
         with:
-          name: terraform-state
+          name: terraform-state-${{ github.event.inputs.environment || 'prod' }}
           path: terraform/
       
       - name: Verify all resources exist
