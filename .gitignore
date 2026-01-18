@@ -11,10 +11,14 @@ terraform/*.tfplan
 terraform/.terraform.lock.hcl
 
 # Python
-pycache/
+__pycache__/
 *.py[cod]
 .venv/
 venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Azure Functions
 local.settings.json
