@@ -2,7 +2,7 @@ name: Terraform Deployment
 
 # =============================================================================
 # This workflow automates Terraform deployment for the az_rich infrastructure
-# 
+#
 # Required Secrets:
 # - AZURE_CLIENT_ID: Service Principal Application (Client) ID
 # - AZURE_CLIENT_SECRET: Service Principal Client Secret
@@ -31,7 +31,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -128,21 +128,21 @@ jobs:
             const fs = require('fs');
             const planOutput = fs.readFileSync('${{ env.WORKING_DIRECTORY }}/plan_output.txt', 'utf8');
             const truncatedPlan = planOutput.length > 60000 ? planOutput.substring(0, 60000) + '\n\n... (truncated)' : planOutput;
-            
+
             const output = `#### Terraform Initialization ⚙️ \`${{ steps.init.outcome }}\`
             #### Terraform Validation 🤖 \`${{ steps.validate.outcome }}\`
             #### Terraform Plan 📖 \`${{ steps.plan.outcome }}\`
-            
+
             <details><summary>Show Plan</summary>
-            
+
             \`\`\`terraform
             ${truncatedPlan}
             \`\`\`
-            
+
             </details>
-            
+
             *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -161,7 +161,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
