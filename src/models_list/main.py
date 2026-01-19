@@ -3,7 +3,6 @@
 import json
 import azure.functions as func
 
-
 MODELS = [
     {
         "id": "mixtral-8x7b",

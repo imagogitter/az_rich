@@ -32,8 +32,11 @@ src/
 ├── requirements.txt    # Python dependencies
 └── host.json          # Azure Functions configuration
 
-terraform/              # Infrastructure as Code
-scripts/               # Utility scripts
+terraform/              # Infrastructure as Code (Terraform)
+scripts/               # Utility scripts (deployment, load testing)
+tests/                 # Test suite (pytest)
+frontend/              # Open WebUI container application
+docs/                  # Additional documentation
 ```
 
 ## Development Commands
@@ -66,14 +69,11 @@ pytest tests -v --cov=src --cov-report=xml
 
 ### Deployment
 ```bash
-# Deploy via script
-./deploy.sh
+# Deploy via script (recommended)
+./setup-frontend-complete.sh
 
-# Deploy via Terraform
+# Or deploy infrastructure only
 cd terraform && terraform init && terraform apply
-
-# Deploy via Bicep
-az deployment sub create --location eastus --template-file bicep/main.bicep
 ```
 
 ## Coding Standards
@@ -165,6 +165,11 @@ return func.HttpResponse(
 - PRs to `main` trigger CI checks
 - All code must pass: flake8, black format check, and tests
 - Mypy type checking is informational (continue-on-error: true)
+- Three main workflows:
+  - `ci.yml`: Lint, format, and test on every push/PR
+  - `terraform-deploy.yml`: Terraform infrastructure deployment (main branch only)
+  - `full-deployment.yml`: Complete deployment with infrastructure, functions, and frontend
+  - `frontend-deploy.yml`: Frontend-only deployment
 
 ## Notes
 

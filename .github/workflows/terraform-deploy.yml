@@ -102,7 +102,7 @@ jobs:
 
       - name: Save Terraform Plan
         if: github.event_name == 'push' && steps.plan.outcome == 'success'
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: tfplan
           path: ${{ env.WORKING_DIRECTORY }}/tfplan
@@ -232,7 +232,7 @@ jobs:
 
       - name: Upload Terraform Outputs
         if: success()
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: terraform-outputs
           path: ${{ env.WORKING_DIRECTORY }}/terraform-outputs.json
