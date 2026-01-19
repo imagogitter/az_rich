@@ -202,7 +202,7 @@ jobs:
       
       - name: Deploy to Azure Functions
         id: deploy-functions
-        uses: Azure/functions-action@v1
+        uses: azure/functions-action@v1
         with:
           app-name: ${{ needs.deploy-infrastructure.outputs.function_app_name }}
           package: function-app.zip
